@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authservice
+  namespace: family
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app:  authservice
+  template:
+    metadata:
+      labels:
+        app:  authservice
+    spec:
+      initContainers:
+      - name: init-postgresdb
+        image: busybox:1.28
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c', "until nslookup mysql.family.svc.cluster.local; do echo waiting for mysql; sleep 2; done"]
+      containers:
+      - name:  authservice
+        image: luke19/familyauthservice:<VERSION>
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: 1000m
+          requests:
+            memory: 256Mi
+            cpu: 150m
+        env:
+        - name: DB_AUTH_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: family-config
+              key: DB_HOST
+        - name: DB_AUTH_DB
+          valueFrom:
+            secretKeyRef:
+              name: family-secret
+              key: AUTH_DB
+        - name: DB_AUTH_USER
+          valueFrom:
+            secretKeyRef:
+              name: family-secret
+              key: AUTH_USER
+        - name: DB_AUTH_PASS
+          valueFrom:
+            secretKeyRef:
+              name: family-secret
+              key: AUTH_PASS
+        - name: COMPANY_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: family-config
+              key: COMPANY_NAME
+        ports:
+        - containerPort: 8080 #Expose containerport to the pod
+        livenessProbe: #Check that pod is ready
+          httpGet:
+            path: / #path to check
+            port: 8080
+          initialDelaySeconds: 10 #start checking after 30 seconds
+          periodSeconds: 10 #check every 30 seconds
+          failureThreshold: 10
+        readinessProbe: #Check that pod is healthy
+          httpGet:
+            path: / #path to check
+            port: 8080 #port to check
+          initialDelaySeconds: 15 #start checking after 15 seconds
+          periodSeconds: 10 #check every 3 seconds
+          failureThreshold: 10
