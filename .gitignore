@@ -6,3 +6,4 @@ target
 openapi/.attach*
 .attach*
 .vscode/
+spotbugs.xml
