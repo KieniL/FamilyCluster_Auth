@@ -13,11 +13,6 @@ spec:
       labels:
         app:  authservice
     spec:
-      initContainers:
-      - name: init-postgresdb
-        image: busybox:1.28
-        imagePullPolicy: IfNotPresent
-        command: ['sh', '-c', "until nslookup mysql.family.svc.cluster.local; do echo waiting for mysql; sleep 2; done"]
       containers:
       - name:  authservice
         image: luke19/familyauthservice:<VERSION>
