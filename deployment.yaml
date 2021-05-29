@@ -4,7 +4,6 @@ metadata:
   name: authservice
   namespace: family
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app:  authservice
@@ -13,10 +12,26 @@ spec:
       labels:
         app:  authservice
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - authservice
+              topologyKey: kubernetes.io/hostname
+            weight: 100
       containers:
       - name:  authservice
         image: luke19/familyauthservice:<VERSION>
         imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsUser: 10000
+          runAsGroup: 10000
         resources:
           limits:
             memory: 512Mi
