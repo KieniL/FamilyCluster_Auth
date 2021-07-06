@@ -129,12 +129,18 @@ public class AuthController implements AuthApi{
 		long nextWeek = calendar.getTime().getTime();
 		
 		if(user == null) {
-			entity = userRepository.save(new User(
+			if(loginModel.getUsername() != null && loginModel.getPassword() != null){
+				entity = userRepository.save(new User(
 					loginModel.getUsername(),
 					hashPassword(loginModel.getPassword()),
 					new Timestamp(nextWeek), //nextVerifications
 					false //alreadyLoggedIn
 					));
+			}else{
+				System.out.println("Data missing");
+				throw(new NotAuthorizedException("Data missing"));
+			}
+			
 		}else {
 			System.out.println("Already exists");
 			throw(new NotAuthorizedException("already exists"));
@@ -261,9 +267,15 @@ public class AuthController implements AuthApi{
 		}
 		
 		try {
-			user.setPassword(hashPassword(passwordModel.getPassword()));
-			userRepository.save(user);
-			response.setChanged(true);
+			if(!passwordModel.getPassword().isEmpty()){
+				user.setPassword(hashPassword(passwordModel.getPassword()));
+				userRepository.save(user);
+				response.setChanged(true);
+			}else{
+				System.out.println("password is empty");
+				throw(new NotAuthorizedException("password is empty")); 
+			}
+			
 		}catch (Exception e) {
 			System.out.println(e.getMessage());	
 			e.printStackTrace();

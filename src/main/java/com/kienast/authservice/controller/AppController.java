@@ -67,6 +67,13 @@ public class AppController implements AppApi, AppOfUserApi {
 		}catch(NoSuchElementException e) {
 			e.printStackTrace();
 		}
+
+		if(applicationModel.getAppname() == null ||
+			applicationModel.getUrl() == null ||
+			applicationModel.getCssClasses() == null ||
+			applicationModel.getAllowedUsers() == null){
+			throw new BadRequestException(applicationModel.getAppname());
+		}
 		
 		
 		App app = new App(applicationModel.getAppname(), applicationModel.getUrl(), applicationModel.getCssClasses());
@@ -302,7 +309,7 @@ public class AppController implements AppApi, AppOfUserApi {
 	private App findAppByName(String appName) {
 		try {
 			return appRepository.findAll().stream().filter(item -> item.getAppname().equals(appName)).findFirst().get();
-		} catch (NoSuchElementException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}	
