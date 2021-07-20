@@ -198,7 +198,7 @@ public class AppController implements AppApi, AppOfUserApi {
 
 	@Override
 	@Operation(description = "get an application")
-	public ResponseEntity<ApplicationModel> getApp(String JWT, String xRequestID, String SOURCE_IP, String appname) {
+	public ResponseEntity<ApplicationModel> getApp(String appname, String JWT, String xRequestID, String SOURCE_IP) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Get Application) for " + appname);
@@ -241,8 +241,8 @@ public class AppController implements AppApi, AppOfUserApi {
 
 	@Override
 	@Operation(description = "verify user for application")
-	public ResponseEntity<VerifiedModel> verifyUserForApp(String JWT, String xRequestID, String SOURCE_IP, String appname,
-			String username) {
+	public ResponseEntity<VerifiedModel> verifyUserForApp(String appname, String username, String JWT, String xRequestID,
+			String SOURCE_IP) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Verify User for Application) for " + appname);
@@ -279,8 +279,8 @@ public class AppController implements AppApi, AppOfUserApi {
 
 	@Override
 	@Operation(description = "Add User to App")
-	public ResponseEntity<UpdatedModel> addUser2App(String JWT, String xRequestID, String SOURCE_IP, String appname,
-			String username) {
+	public ResponseEntity<UpdatedModel> addUser2App(String appname, String username, String JWT, String xRequestID,
+			String SOURCE_IP) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Add User to Application) for " + appname);
@@ -359,8 +359,8 @@ public class AppController implements AppApi, AppOfUserApi {
 
 	@Override
 	@Operation(description = "Get All Applications for User")
-	public ResponseEntity<List<ApplicationModel>> getAppOfUser(String JWT, String xRequestID, String SOURCE_IP,
-			String username) {
+	public ResponseEntity<List<ApplicationModel>> getAppOfUser(String username, String JWT, String xRequestID,
+			String SOURCE_IP) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Get Apps for User)");

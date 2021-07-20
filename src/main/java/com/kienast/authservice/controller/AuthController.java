@@ -232,7 +232,7 @@ public class AuthController implements AuthApi {
 
 	@Override
 	@Operation(description = "Reset Mfa")
-	public ResponseEntity<ResettedModel> resetMfa(String JWT, String xRequestID, String SOURCE_IP, String username,
+	public ResponseEntity<ResettedModel> resetMfa(String username, String JWT, String xRequestID, String SOURCE_IP,
 			@Valid JWTTokenModel tokenModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "");
@@ -281,7 +281,7 @@ public class AuthController implements AuthApi {
 
 	@Override
 	@Operation(description = "Change Password")
-	public ResponseEntity<ChangedModel> changePassword(String JWT, String xRequestID, String SOURCE_IP, String username,
+	public ResponseEntity<ChangedModel> changePassword(String username, String JWT, String xRequestID, String SOURCE_IP,
 			@Valid PasswordModel passwordModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "");
