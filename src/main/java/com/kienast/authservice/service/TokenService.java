@@ -7,5 +7,7 @@ public interface TokenService {
 
 	boolean validateToken(String jwtToken);
 
+	String getUserIdFromToken(String jwtToken);
+
 	Authentication getAuthentication(String token);
 }

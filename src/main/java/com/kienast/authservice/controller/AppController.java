@@ -78,6 +78,7 @@ public class AppController implements AppApi, AppOfUserApi {
 		logger.info("Try to check if App " + applicationModel.getAppname() + " not already exists");
 		try {
 			if (findAppByName(applicationModel.getAppname()) != null) {
+				logger.error("App " + applicationModel.getAppname() + " already exists");
 				throw new BadRequestException(applicationModel.getAppname());
 			}
 		} catch (NoSuchElementException e) {
@@ -367,7 +368,6 @@ public class AppController implements AppApi, AppOfUserApi {
 		try {
 			return appRepository.findAll().stream().filter(item -> item.getAppname().equals(appName)).findFirst().get();
 		} catch (Exception e) {
-			e.printStackTrace();
 			return null;
 		}
 	}

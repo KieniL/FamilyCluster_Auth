@@ -70,9 +70,11 @@ public class MfaController implements MfaApi {
 			@Valid JWTTokenModel tokenModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (MFA Setup)");
 
 		User user = null;
 
+		logger.info("Try to validate Token for Request (MFA Setup Application)");
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
@@ -80,8 +82,7 @@ public class MfaController implements MfaApi {
 		try {
 			user = findByUsername(tokenModel.getUsername());
 		} catch (java.util.NoSuchElementException e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			logger.error("User does not exist" + e.getMessage());
 			throw (new NotAuthorizedException(tokenModel.getUsername()));
 		}
 
@@ -91,6 +92,7 @@ public class MfaController implements MfaApi {
 		user.setSecret(secret);
 		userRepository.save(user);
 
+		logger.info("Try to generate QR Code for MFA Setup");
 		QrData data = qrDataFactory.newBuilder().label(user.getUsername()).secret(secret).issuer(companyName).build();
 
 		// Generate the QR code image data as a base64 string which
@@ -100,7 +102,7 @@ public class MfaController implements MfaApi {
 		try {
 			qrCodeImage = getDataUriForImage(qrGenerator.generate(data), qrGenerator.getImageMimeType());
 		} catch (QrGenerationException e) {
-			e.printStackTrace();
+			logger.debug("Error on QR Generation" + e.getMessage());
 		}
 		// return qrCodeImage;
 		Map<String, Object> map = new HashMap<>();
@@ -109,6 +111,7 @@ public class MfaController implements MfaApi {
 		QRCodeModel qrCodeModel = new QRCodeModel();
 		qrCodeModel.setQrcode(map.get("qrCode").toString());
 
+		logger.info("QR Generation was successfull");
 		return ResponseEntity.ok(qrCodeModel);
 	}
 
@@ -118,10 +121,12 @@ public class MfaController implements MfaApi {
 			@Valid MFATokenVerificationModel mfATokenVerificationModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (MFA Verify)");
 
 		VerifiedModel verified = new VerifiedModel();
 		User user = null;
 
+		logger.info("Try to validate Token for Request (MFA Verify)");
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
@@ -129,12 +134,12 @@ public class MfaController implements MfaApi {
 		try {
 			user = findByUsername(mfATokenVerificationModel.getUsername());
 		} catch (java.util.NoSuchElementException e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			logger.error("User does not exist" + e.getMessage());
 			throw (new NotAuthorizedException(mfATokenVerificationModel.getUsername()));
 		}
 
 		if (verifier.isValidCode(user.getSecret(), mfATokenVerificationModel.getMfaToken())) {
+			logger.info("User does have a valid MFA Code");
 			verified.setVerificationMessage("CORRECT CODE");
 			Calendar calendar = Calendar.getInstance();
 			calendar.add(Calendar.WEEK_OF_YEAR, +1);
@@ -143,6 +148,7 @@ public class MfaController implements MfaApi {
 			user.setNextVerification(new Timestamp(nextWeek));
 			userRepository.save(user);
 		} else {
+			logger.warn("User does not have a valid MFA Code");
 			verified.setVerificationMessage("INCORRECT CODE");
 		}
 

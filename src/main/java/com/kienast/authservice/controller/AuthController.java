@@ -24,7 +24,6 @@ import com.kienast.authservice.rest.api.model.JWTTokenModel;
 import com.kienast.authservice.rest.api.model.LoginModel;
 import com.kienast.authservice.rest.api.model.PasswordModel;
 import com.kienast.authservice.rest.api.model.ResettedModel;
-import com.kienast.authservice.rest.api.model.TokenModel;
 import com.kienast.authservice.rest.api.model.TokenVerifiyResponseModel;
 import com.kienast.authservice.rest.api.model.TokenVerifiyResponseModel.MfaActionEnum;
 import com.kienast.authservice.rest.api.model.UserModel;
@@ -63,15 +62,18 @@ public class AuthController implements AuthApi {
 	public ResponseEntity<AuthenticationModel> authenticate(String xRequestID, String SOURCE_IP, @Valid LoginModel loginModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Authenticate User)");
 
 		AuthenticationModel response = new AuthenticationModel();
 		User user = null;
 		try {
+			logger.info("Check if User and pw exists");
 			user = findByUsernameAndPassword(loginModel.getUsername(), loginModel.getPassword());
 			List<User2App> userApps = findUserApps(user);
 
 			List<AllowedApplicationModel> allowedApplicatiions = new ArrayList<>();
 
+			logger.info("Search for apps of that user");
 			for (User2App ua : userApps) {
 				App app = ua.getApp();
 				AllowedApplicationModel allowedAppliation = new AllowedApplicationModel();
@@ -89,17 +91,17 @@ public class AuthController implements AuthApi {
 			response.setAllowedApplicationList(allowedApplicatiions);
 
 		} catch (java.util.NoSuchElementException e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			logger.error(e.getMessage());
 			throw (new NotAuthorizedException(loginModel.getUsername()));
 		}
 
 		String userCred = "";
 
 		try {
+			logger.info("Try to generate a Token for the user");
 			userCred = tokenService.generateToken(user.getUsername());
 		} catch (WrongCredentialsException e) {
-			e.printStackTrace();
+			logger.error("Token generation failed" + e.getMessage());
 			throw (new NotAuthorizedException(user.getUsername()));
 		}
 
@@ -107,6 +109,7 @@ public class AuthController implements AuthApi {
 
 		response.setToken(tokenModel.getJwt());
 
+		logger.info("Token was generated. Authentication was successfull.");
 		return ResponseEntity.ok(response);
 	}
 
@@ -116,13 +119,14 @@ public class AuthController implements AuthApi {
 			@Valid LoginModel loginModel) throws NotAuthorizedException {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Register User)");
 
 		User user = null;
 		try {
+			logger.info("Check if User not already exists");
 			user = findByUsernameAndPassword(loginModel.getUsername(), loginModel.getPassword());
 		} catch (java.util.NoSuchElementException e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			logger.debug("Error on searching: " + e.getMessage());
 		}
 
 		User entity = null;
@@ -133,30 +137,34 @@ public class AuthController implements AuthApi {
 
 		if (user == null) {
 			if (loginModel.getUsername() != null && loginModel.getPassword() != null) {
+				logger.info("Try to add new user");
 				entity = userRepository
 						.save(new User(loginModel.getUsername(), hashPassword(loginModel.getPassword()), new Timestamp(nextWeek), // nextVerifications
 								false // alreadyLoggedIn
 						));
 			} else {
-				System.out.println("Data missing");
+				logger.error("Some data was missing");
 				throw (new NotAuthorizedException("Data missing"));
 			}
 
 		} else {
-			System.out.println("Already exists");
+			logger.error("User already exists");
 			throw (new NotAuthorizedException("already exists"));
 		}
 
 		String userCred = "";
 
 		try {
+			logger.info("Try to generate a Token for the user");
 			userCred = tokenService.generateToken(entity.getUsername());
 		} catch (WrongCredentialsException e) {
-			e.printStackTrace();
+			logger.error("Token generation failed" + e.getMessage());
 			throw (new NotAuthorizedException(entity.getUsername()));
 		}
 
 		JWTTokenModel response = new TokenAdapter(userCred, entity.getUsername()).createJson();
+
+		logger.info("User was successfully added");
 		return ResponseEntity.ok(response);
 	}
 
@@ -166,9 +174,11 @@ public class AuthController implements AuthApi {
 			@Valid JWTTokenModel tokenModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Verify Jwt)");
 
 		TokenVerifiyResponseModel response = new TokenVerifiyResponseModel();
 
+		logger.info("Try to validate the JWT");
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
@@ -177,19 +187,23 @@ public class AuthController implements AuthApi {
 
 		// MFA needed if not logged in until now
 		if (!user.hasAlreadyLoggedIn()) {
+			logger.debug("User needs to log in and setup MFA");
 			response.setMfaNeeded(true);
 			response.setMfaAction(MfaActionEnum.SETUP);
 			user.setAlreadyLoggedIn(true);
 			// No secret already --> setup needed
 		} else if (user.getSecret() == null) {
+			logger.debug("User needs to log in since there is no secret");
 			response.setMfaNeeded(true);
 			response.setMfaAction(MfaActionEnum.SETUP);
 			// Verification Time is there
 		} else if (user.getNextVerification().before(new Timestamp(Calendar.getInstance().getTime().getTime()))) {
+			logger.debug("User needs to log in again since verification time exceeded");
 			response.setMfaNeeded(true);
 			response.setMfaAction(MfaActionEnum.VERIFIY);
 			// Check if the user is already logged ind
 		} else {
+			logger.debug("User does not need a MFA Action");
 			response.setMfaNeeded(false);
 		}
 
@@ -205,23 +219,26 @@ public class AuthController implements AuthApi {
 			@Valid JWTTokenModel tokenModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Reset MFA)");
 
 		ResettedModel response = new ResettedModel();
 		User user = null;
 
+		logger.info("Try to validate the JWT");
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
 
 		try {
+			logger.info("Check if user exists");
 			user = findByUsername(username);
 		} catch (java.util.NoSuchElementException e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			logger.error(e.getMessage());
 			throw (new NotAuthorizedException(username));
 		}
 
 		try {
+			logger.info("Try to update verification time on user");
 			Calendar calendar = Calendar.getInstance();
 			calendar.add(Calendar.WEEK_OF_YEAR, -1);
 			long lastWeek = calendar.getTime().getTime();
@@ -232,8 +249,7 @@ public class AuthController implements AuthApi {
 
 			response.setResetted(true);
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			logger.error("Error on update verification time occured");
 			response.setResetted(false);
 		}
 
@@ -247,7 +263,9 @@ public class AuthController implements AuthApi {
 			@Valid PasswordModel passwordModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Change PW)");
 
+		logger.info("Try to validate the JWT");
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
@@ -255,27 +273,28 @@ public class AuthController implements AuthApi {
 		ChangedModel response = new ChangedModel();
 
 		User user = null;
+
 		try {
+			logger.info("Check if user exists");
 			user = findByUsername(username);
 		} catch (java.util.NoSuchElementException e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			logger.error(e.getMessage());
 			throw (new NotAuthorizedException(username));
 		}
 
 		try {
+			logger.info("Try to set the new password");
 			if (!passwordModel.getPassword().isEmpty()) {
 				user.setPassword(hashPassword(passwordModel.getPassword()));
 				userRepository.save(user);
 				response.setChanged(true);
 			} else {
-				System.out.println("password is empty");
+				logger.error("Password is empty");
 				throw (new NotAuthorizedException("password is empty"));
 			}
 
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			logger.info("Error occured: " + e.getMessage());
 			response.setChanged(false);
 		}
 
@@ -287,10 +306,12 @@ public class AuthController implements AuthApi {
 	public ResponseEntity<List<UserModel>> getUsers(String JWT, String xRequestID, String SOURCE_IP) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Get all Users)");
 
 		List<UserModel> usersResponse = new ArrayList<>();
 		List<User> users = userRepository.findAll();
 
+		logger.info("Try to search for the Users");
 		for (User u : users) {
 			UserModel model = new UserModel();
 			model.setId(u.getId().toString());
@@ -298,6 +319,7 @@ public class AuthController implements AuthApi {
 			usersResponse.add(model);
 		}
 
+		logger.info("Retrieval was succesfull");
 		return ResponseEntity.ok(usersResponse);
 	}
 

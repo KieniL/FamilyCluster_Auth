@@ -9,9 +9,11 @@ import java.util.Date;
 import java.util.stream.Collectors;
 
 import com.kienast.authservice.controller.AppController;
+import com.kienast.authservice.repository.UserRepository;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -33,6 +35,9 @@ public class TokenServiceImpl implements TokenService {
 	private static final String AUTHORITIES_KEY = "auth";
 	private static Logger logger = LogManager.getLogger(AppController.class.getName());
 
+	@Autowired
+	private UserRepository userRepository;
+
 	@Override
 	public String generateToken(String userId) {
 		String authorities = "ROLE_SERVICE";
@@ -44,17 +49,13 @@ public class TokenServiceImpl implements TokenService {
 		Date expirationDate = Date.from(expirationDateTime.toInstant());
 
 		return Jwts.builder().setSubject(userId).claim(AUTHORITIES_KEY, authorities)
-				.signWith(SignatureAlgorithm.HS512, SECRET).setIssuedAt(issueDate).setExpiration(expirationDate)
-				.compact();
+				.signWith(SignatureAlgorithm.HS512, SECRET).setIssuedAt(issueDate).setExpiration(expirationDate).compact();
 	}
 
 	@Override
 	public boolean validateToken(String jwtToken) {
 		try {
-			System.out.println(jwtToken);
-			Jws<Claims> jws = Jwts.parser().setSigningKey(SECRET).parseClaimsJws(jwtToken);
-			System.out.println(jws.getBody().get("sub"));
-
+			Jwts.parser().setSigningKey(SECRET).parseClaimsJws(jwtToken);
 			return true;
 		} catch (SignatureException e) {
 			logger.error("Signatureexception " + e.getMessage());
@@ -62,6 +63,29 @@ public class TokenServiceImpl implements TokenService {
 		} catch (MalformedJwtException e) {
 			logger.error("JWT was malformed " + e.getMessage());
 			return false;
+		}
+	}
+
+	@Override
+	public String getUserIdFromToken(String jwtToken) {
+		try {
+			Jws<Claims> jws = Jwts.parser().setSigningKey(SECRET).parseClaimsJws(jwtToken);
+			String userName = String.valueOf(jws.getBody().get("sub"));
+
+			com.kienast.authservice.model.User user = null;
+			if (org.apache.commons.lang3.StringUtils.isNotBlank(userName)) {
+				user = findByUsername(userName);
+				logger.info("UserId found");
+				return String.valueOf(user.getId());
+			}
+			logger.error("UserId not found");
+			return "";
+		} catch (SignatureException e) {
+			logger.error("Signatureexception " + e.getMessage());
+			return "";
+		} catch (MalformedJwtException e) {
+			logger.error("JWT was malformed " + e.getMessage());
+			return "";
 		}
 	}
 
@@ -76,6 +100,10 @@ public class TokenServiceImpl implements TokenService {
 		User principal = new User(claims.getSubject(), "", authorities);
 
 		return new UsernamePasswordAuthenticationToken(principal, "", authorities);
+	}
+
+	private com.kienast.authservice.model.User findByUsername(String username) {
+		return userRepository.findAll().stream().filter(item -> item.getUsername().equals(username)).findFirst().get();
 	}
 
 }
