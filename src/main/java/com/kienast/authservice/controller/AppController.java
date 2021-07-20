@@ -23,12 +23,12 @@ import com.kienast.authservice.rest.api.AppApi;
 import com.kienast.authservice.rest.api.AppOfUserApi;
 import com.kienast.authservice.rest.api.model.ApplicationModel;
 import com.kienast.authservice.rest.api.model.ApplicationResponseModel;
-import com.kienast.authservice.rest.api.model.ApplicationWithoutJwtModel;
 import com.kienast.authservice.rest.api.model.UpdateApplicationModel;
 import com.kienast.authservice.rest.api.model.UpdatedModel;
 import com.kienast.authservice.rest.api.model.VerifiedModel;
 import com.kienast.authservice.service.TokenService;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.slf4j.MDC;
@@ -64,7 +64,7 @@ public class AppController implements AppApi, AppOfUserApi {
 	public ResponseEntity<ApplicationModel> addApplication(String JWT, String xRequestID, String SOURCE_IP,
 			@Valid ApplicationModel applicationModel) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 
 		logger.info("Got Request (Add Application) for " + applicationModel.getAppname());
 
@@ -73,6 +73,12 @@ public class AppController implements AppApi, AppOfUserApi {
 		logger.info("Try to validate Token for Request (Add Application) on " + applicationModel.getAppname());
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
+		}
+
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
 		}
 
 		logger.info("Try to check if App " + applicationModel.getAppname() + " not already exists");
@@ -117,7 +123,6 @@ public class AppController implements AppApi, AppOfUserApi {
 		response.setUrl(app.getUrl());
 		response.setAllowedUsers(allowedUsers);
 
-
 		logger.info("Creation was successfull");
 
 		return ResponseEntity.ok(response);
@@ -128,7 +133,7 @@ public class AppController implements AppApi, AppOfUserApi {
 	public ResponseEntity<ApplicationModel> updateApplication(String JWT, String xRequestID, String SOURCE_IP,
 			@Valid UpdateApplicationModel updateApplicationModel) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Update Application) for " + updateApplicationModel.getAppname());
 
 		ApplicationModel response = new ApplicationModel();
@@ -136,6 +141,11 @@ public class AppController implements AppApi, AppOfUserApi {
 		logger.info("Try to validate Token for Request (Update Application) on " + updateApplicationModel.getAppname());
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
 		}
 
 		logger.info("Try to check if App " + updateApplicationModel.getAppname() + " already exists");
@@ -188,11 +198,20 @@ public class AppController implements AppApi, AppOfUserApi {
 
 	@Override
 	@Operation(description = "get an application")
-	public ResponseEntity<ApplicationModel> getApp(String JWT, String xRequestID, String SOURCE_IP,
-			String appname) {
+	public ResponseEntity<ApplicationModel> getApp(String JWT, String xRequestID, String SOURCE_IP, String appname) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Get Application) for " + appname);
+
+		logger.info("Try to validate Token for Request (Get Application)");
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
+		}
 
 		App app = findAppByName(appname);
 
@@ -225,8 +244,18 @@ public class AppController implements AppApi, AppOfUserApi {
 	public ResponseEntity<VerifiedModel> verifyUserForApp(String JWT, String xRequestID, String SOURCE_IP, String appname,
 			String username) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Verify User for Application) for " + appname);
+
+		logger.info("Try to validate Token for Request (Verify User for Application)");
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
+		}
 
 		App app = findAppByName(appname);
 		VerifiedModel response = new VerifiedModel();
@@ -253,8 +282,18 @@ public class AppController implements AppApi, AppOfUserApi {
 	public ResponseEntity<UpdatedModel> addUser2App(String JWT, String xRequestID, String SOURCE_IP, String appname,
 			String username) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Add User to Application) for " + appname);
+
+		logger.info("Try to validate Token for Request (Add User to Application)");
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
+		}
 
 		App app = findAppByName(appname);
 		User user = findByUsername(username);
@@ -285,9 +324,18 @@ public class AppController implements AppApi, AppOfUserApi {
 	public ResponseEntity<List<ApplicationResponseModel>> getApplications(String JWT, String xRequestID,
 			String SOURCE_IP) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Get all Applications)");
 
+		logger.info("Try to validate Token for Request (Get Applications)");
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
+		}
 
 		logger.info("Try to search for applications");
 		List<App> apps = appRepository.findAll();
@@ -314,8 +362,18 @@ public class AppController implements AppApi, AppOfUserApi {
 	public ResponseEntity<List<ApplicationModel>> getAppOfUser(String JWT, String xRequestID, String SOURCE_IP,
 			String username) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Get Apps for User)");
+
+		logger.info("Try to validate Token for Request (Get Applications for User)");
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
+		}
 
 		List<App> apps = appRepository.findAll();
 		List<ApplicationModel> response = new ArrayList<>();

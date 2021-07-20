@@ -29,6 +29,7 @@ import com.kienast.authservice.rest.api.model.TokenVerifiyResponseModel.MfaActio
 import com.kienast.authservice.rest.api.model.UserModel;
 import com.kienast.authservice.service.TokenService;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.mindrot.jbcrypt.BCrypt;
@@ -59,9 +60,10 @@ public class AuthController implements AuthApi {
 
 	@Override
 	@Operation(description = "Authenticate a customer")
-	public ResponseEntity<AuthenticationModel> authenticate(String xRequestID, String SOURCE_IP, @Valid LoginModel loginModel) {
+	public ResponseEntity<AuthenticationModel> authenticate(String xRequestID, String SOURCE_IP,
+			@Valid LoginModel loginModel) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Authenticate User)");
 
 		AuthenticationModel response = new AuthenticationModel();
@@ -118,8 +120,18 @@ public class AuthController implements AuthApi {
 	public ResponseEntity<JWTTokenModel> register(String JWT, String xRequestID, String SOURCE_IP,
 			@Valid LoginModel loginModel) throws NotAuthorizedException {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Register User)");
+
+		logger.info("Try to validate Token for Request (Register User)");
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
+		}
 
 		User user = null;
 		try {
@@ -173,7 +185,7 @@ public class AuthController implements AuthApi {
 	public ResponseEntity<TokenVerifiyResponseModel> verifyToken(String JWT, String xRequestID, String SOURCE_IP,
 			@Valid JWTTokenModel tokenModel) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Verify Jwt)");
 
 		TokenVerifiyResponseModel response = new TokenVerifiyResponseModel();
@@ -181,6 +193,11 @@ public class AuthController implements AuthApi {
 		logger.info("Try to validate the JWT");
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
 		}
 
 		User user = findByUsername(tokenModel.getUsername());
@@ -218,7 +235,7 @@ public class AuthController implements AuthApi {
 	public ResponseEntity<ResettedModel> resetMfa(String JWT, String xRequestID, String SOURCE_IP, String username,
 			@Valid JWTTokenModel tokenModel) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Reset MFA)");
 
 		ResettedModel response = new ResettedModel();
@@ -227,6 +244,11 @@ public class AuthController implements AuthApi {
 		logger.info("Try to validate the JWT");
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
 		}
 
 		try {
@@ -262,12 +284,17 @@ public class AuthController implements AuthApi {
 	public ResponseEntity<ChangedModel> changePassword(String JWT, String xRequestID, String SOURCE_IP, String username,
 			@Valid PasswordModel passwordModel) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Change PW)");
 
 		logger.info("Try to validate the JWT");
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
 		}
 
 		ChangedModel response = new ChangedModel();
@@ -305,8 +332,18 @@ public class AuthController implements AuthApi {
 	@Operation(description = "Get all users")
 	public ResponseEntity<List<UserModel>> getUsers(String JWT, String xRequestID, String SOURCE_IP) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (Get all Users)");
+
+		logger.info("Try to validate Token for Request (Get Users)");
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
+		}
 
 		List<UserModel> usersResponse = new ArrayList<>();
 		List<User> users = userRepository.findAll();

@@ -19,6 +19,7 @@ import com.kienast.authservice.rest.api.model.QRCodeModel;
 import com.kienast.authservice.rest.api.model.VerifiedModel;
 import com.kienast.authservice.service.TokenService;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.slf4j.MDC;
@@ -69,7 +70,7 @@ public class MfaController implements MfaApi {
 	public ResponseEntity<QRCodeModel> mfaSetup(String JWT, String xRequestID, String SOURCE_IP,
 			@Valid JWTTokenModel tokenModel) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (MFA Setup)");
 
 		User user = null;
@@ -77,6 +78,11 @@ public class MfaController implements MfaApi {
 		logger.info("Try to validate Token for Request (MFA Setup Application)");
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
 		}
 
 		try {
@@ -120,7 +126,7 @@ public class MfaController implements MfaApi {
 	public ResponseEntity<VerifiedModel> mfaVerify(String JWT, String xRequestID, String SOURCE_IP,
 			@Valid MFATokenVerificationModel mfATokenVerificationModel) {
 
-		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		initializeLogInfo(xRequestID, SOURCE_IP, "");
 		logger.info("Got Request (MFA Verify)");
 
 		VerifiedModel verified = new VerifiedModel();
@@ -129,6 +135,11 @@ public class MfaController implements MfaApi {
 		logger.info("Try to validate Token for Request (MFA Verify)");
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
+		}
+		String userId = tokenService.getUserIdFromToken(JWT);
+		if (StringUtils.isNotBlank(userId)) {
+			initializeLogInfo(xRequestID, SOURCE_IP, userId);
+			logger.info("Added userId to log");
 		}
 
 		try {
