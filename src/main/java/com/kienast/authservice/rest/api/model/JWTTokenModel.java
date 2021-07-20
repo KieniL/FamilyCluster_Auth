@@ -9,32 +9,55 @@ import javax.validation.Valid;
 import javax.validation.constraints.*;
 
 /**
- * PasswordModel
+ * JWTTokenModel
  */
 
-public class PasswordModel   {
-  @JsonProperty("password")
-  private String password;
+public class JWTTokenModel   {
+  @JsonProperty("username")
+  private String username;
 
-  public PasswordModel password(String password) {
-    this.password = password;
+  @JsonProperty("jwt")
+  private String jwt;
+
+  public JWTTokenModel username(String username) {
+    this.username = username;
     return this;
   }
 
   /**
-   * Get password
-   * @return password
+   * Get username
+   * @return username
   */
   @ApiModelProperty(required = true, value = "")
   @NotNull
 
 
-  public String getPassword() {
-    return password;
+  public String getUsername() {
+    return username;
   }
 
-  public void setPassword(String password) {
-    this.password = password;
+  public void setUsername(String username) {
+    this.username = username;
+  }
+
+  public JWTTokenModel jwt(String jwt) {
+    this.jwt = jwt;
+    return this;
+  }
+
+  /**
+   * Get jwt
+   * @return jwt
+  */
+  @ApiModelProperty(value = "")
+
+
+  public String getJwt() {
+    return jwt;
+  }
+
+  public void setJwt(String jwt) {
+    this.jwt = jwt;
   }
 
 
@@ -46,21 +69,23 @@ public class PasswordModel   {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    PasswordModel password = (PasswordModel) o;
-    return Objects.equals(this.password, password.password);
+    JWTTokenModel jwTToken = (JWTTokenModel) o;
+    return Objects.equals(this.username, jwTToken.username) &&
+        Objects.equals(this.jwt, jwTToken.jwt);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(password);
+    return Objects.hash(username, jwt);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class PasswordModel {\n");
+    sb.append("class JWTTokenModel {\n");
     
-    sb.append("    password: ").append(toIndentedString(password)).append("\n");
+    sb.append("    username: ").append(toIndentedString(username)).append("\n");
+    sb.append("    jwt: ").append(toIndentedString(jwt)).append("\n");
     sb.append("}");
     return sb.toString();
   }
