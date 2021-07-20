@@ -16,9 +16,6 @@ public class MFATokenVerificationModel   {
   @JsonProperty("mfaToken")
   private String mfaToken;
 
-  @JsonProperty("jwtToken")
-  private String jwtToken;
-
   @JsonProperty("username")
   private String username;
 
@@ -41,27 +38,6 @@ public class MFATokenVerificationModel   {
 
   public void setMfaToken(String mfaToken) {
     this.mfaToken = mfaToken;
-  }
-
-  public MFATokenVerificationModel jwtToken(String jwtToken) {
-    this.jwtToken = jwtToken;
-    return this;
-  }
-
-  /**
-   * Get jwtToken
-   * @return jwtToken
-  */
-  @ApiModelProperty(required = true, value = "")
-  @NotNull
-
-
-  public String getJwtToken() {
-    return jwtToken;
-  }
-
-  public void setJwtToken(String jwtToken) {
-    this.jwtToken = jwtToken;
   }
 
   public MFATokenVerificationModel username(String username) {
@@ -95,13 +71,12 @@ public class MFATokenVerificationModel   {
     }
     MFATokenVerificationModel mfATokenVerification = (MFATokenVerificationModel) o;
     return Objects.equals(this.mfaToken, mfATokenVerification.mfaToken) &&
-        Objects.equals(this.jwtToken, mfATokenVerification.jwtToken) &&
         Objects.equals(this.username, mfATokenVerification.username);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(mfaToken, jwtToken, username);
+    return Objects.hash(mfaToken, username);
   }
 
   @Override
@@ -110,7 +85,6 @@ public class MFATokenVerificationModel   {
     sb.append("class MFATokenVerificationModel {\n");
     
     sb.append("    mfaToken: ").append(toIndentedString(mfaToken)).append("\n");
-    sb.append("    jwtToken: ").append(toIndentedString(jwtToken)).append("\n");
     sb.append("    username: ").append(toIndentedString(username)).append("\n");
     sb.append("}");
     return sb.toString();

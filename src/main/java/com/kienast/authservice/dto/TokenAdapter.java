@@ -1,6 +1,6 @@
 package com.kienast.authservice.dto;
 
-import com.kienast.authservice.rest.api.model.TokenModel;
+import com.kienast.authservice.rest.api.model.JWTTokenModel;
 
 public class TokenAdapter {
 	private String token;
@@ -11,7 +11,7 @@ public class TokenAdapter {
 		this.username = username;
 	}
 
-	public TokenModel createJson() {
-		return new TokenModel().token(token).username(username);
+	public JWTTokenModel createJson() {
+		return new JWTTokenModel().jwt(token).username(username);
 	}
 }

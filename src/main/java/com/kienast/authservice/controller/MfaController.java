@@ -13,9 +13,9 @@ import com.kienast.authservice.exception.NotAuthorizedException;
 import com.kienast.authservice.model.User;
 import com.kienast.authservice.repository.UserRepository;
 import com.kienast.authservice.rest.api.MfaApi;
+import com.kienast.authservice.rest.api.model.JWTTokenModel;
 import com.kienast.authservice.rest.api.model.MFATokenVerificationModel;
 import com.kienast.authservice.rest.api.model.QRCodeModel;
-import com.kienast.authservice.rest.api.model.TokenModel;
 import com.kienast.authservice.rest.api.model.VerifiedModel;
 import com.kienast.authservice.service.TokenService;
 
@@ -67,14 +67,14 @@ public class MfaController implements MfaApi {
 	@Override
 	@Operation(description = "setup MFA")
 	public ResponseEntity<QRCodeModel> mfaSetup(String JWT, String xRequestID, String SOURCE_IP,
-			@Valid TokenModel tokenModel) {
+			@Valid JWTTokenModel tokenModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
 
 		User user = null;
 
-		if (!tokenService.validateToken(tokenModel.getToken())) {
-			throw (new NotAuthorizedException(tokenModel.getToken()));
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
 		}
 
 		try {
@@ -122,8 +122,8 @@ public class MfaController implements MfaApi {
 		VerifiedModel verified = new VerifiedModel();
 		User user = null;
 
-		if (!tokenService.validateToken(mfATokenVerificationModel.getJwtToken())) {
-			throw (new NotAuthorizedException(mfATokenVerificationModel.getJwtToken()));
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
 		}
 
 		try {

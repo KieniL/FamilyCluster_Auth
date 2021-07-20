@@ -7,7 +7,6 @@ package com.kienast.authservice.rest.api;
 
 import com.kienast.authservice.rest.api.model.ApplicationModel;
 import com.kienast.authservice.rest.api.model.ApplicationResponseModel;
-import com.kienast.authservice.rest.api.model.ApplicationWithoutJwtModel;
 import com.kienast.authservice.rest.api.model.UpdateApplicationModel;
 import com.kienast.authservice.rest.api.model.UpdatedModel;
 import com.kienast.authservice.rest.api.model.VerifiedModel;
@@ -53,13 +52,13 @@ public interface AppApi {
     ResponseEntity<UpdatedModel> addUser2App(@ApiParam(value = "the name the app",required=true) @PathVariable("appname") String appname,@ApiParam(value = "the name of the user",required=true) @PathVariable("username") String username,@ApiParam(value = "" ,required=true) @RequestHeader(value="JWT", required=true) String JWT,@ApiParam(value = "" ,required=true) @RequestHeader(value="X-Request-ID", required=true) String xRequestID,@ApiParam(value = "" ,required=true) @RequestHeader(value="SOURCE_IP", required=true) String SOURCE_IP);
 
 
-    @ApiOperation(value = "Get an App", nickname = "getApp", notes = "", response = ApplicationWithoutJwtModel.class, tags={ "app", })
+    @ApiOperation(value = "Get an App", nickname = "getApp", notes = "", response = ApplicationModel.class, tags={ "app", })
     @ApiResponses(value = { 
-        @ApiResponse(code = 200, message = "App", response = ApplicationWithoutJwtModel.class) })
+        @ApiResponse(code = 200, message = "App", response = ApplicationModel.class) })
     @RequestMapping(value = "/app/{appname}",
         produces = { "application/json" }, 
         method = RequestMethod.GET)
-    ResponseEntity<ApplicationWithoutJwtModel> getApp(@ApiParam(value = "the name the app",required=true) @PathVariable("appname") String appname,@ApiParam(value = "" ,required=true) @RequestHeader(value="JWT", required=true) String JWT,@ApiParam(value = "" ,required=true) @RequestHeader(value="X-Request-ID", required=true) String xRequestID,@ApiParam(value = "" ,required=true) @RequestHeader(value="SOURCE_IP", required=true) String SOURCE_IP);
+    ResponseEntity<ApplicationModel> getApp(@ApiParam(value = "the name the app",required=true) @PathVariable("appname") String appname,@ApiParam(value = "" ,required=true) @RequestHeader(value="JWT", required=true) String JWT,@ApiParam(value = "" ,required=true) @RequestHeader(value="X-Request-ID", required=true) String xRequestID,@ApiParam(value = "" ,required=true) @RequestHeader(value="SOURCE_IP", required=true) String SOURCE_IP);
 
 
     @ApiOperation(value = "get all applications", nickname = "getApplications", notes = "", response = ApplicationResponseModel.class, responseContainer = "List", tags={ "app", })

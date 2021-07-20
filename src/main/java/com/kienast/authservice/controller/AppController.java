@@ -71,8 +71,8 @@ public class AppController implements AppApi, AppOfUserApi {
 		ApplicationModel response = new ApplicationModel();
 
 		logger.info("Try to validate Token for Request (Add Application) on " + applicationModel.getAppname());
-		if (!tokenService.validateToken(applicationModel.getJwt())) {
-			throw (new NotAuthorizedException(applicationModel.getJwt()));
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
 		}
 
 		logger.info("Try to check if App " + applicationModel.getAppname() + " not already exists");
@@ -114,7 +114,6 @@ public class AppController implements AppApi, AppOfUserApi {
 
 		response.setAppname(app.getAppname());
 		response.setUrl(app.getUrl());
-		response.setJwt(applicationModel.getJwt());
 		response.setAllowedUsers(allowedUsers);
 
 
@@ -134,8 +133,8 @@ public class AppController implements AppApi, AppOfUserApi {
 		ApplicationModel response = new ApplicationModel();
 
 		logger.info("Try to validate Token for Request (Update Application) on " + updateApplicationModel.getAppname());
-		if (!tokenService.validateToken(updateApplicationModel.getJwt())) {
-			throw (new NotAuthorizedException(updateApplicationModel.getJwt()));
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
 		}
 
 		logger.info("Try to check if App " + updateApplicationModel.getAppname() + " already exists");
@@ -180,7 +179,6 @@ public class AppController implements AppApi, AppOfUserApi {
 		response.setAppname(app.getAppname());
 		response.setUrl(app.getUrl());
 		response.setCssClasses(app.getCssClasses());
-		response.setJwt(updateApplicationModel.getJwt());
 
 		logger.info("Update was successfull");
 
@@ -189,7 +187,7 @@ public class AppController implements AppApi, AppOfUserApi {
 
 	@Override
 	@Operation(description = "get an application")
-	public ResponseEntity<ApplicationWithoutJwtModel> getApp(String JWT, String xRequestID, String SOURCE_IP,
+	public ResponseEntity<ApplicationModel> getApp(String JWT, String xRequestID, String SOURCE_IP,
 			String appname) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
@@ -197,7 +195,7 @@ public class AppController implements AppApi, AppOfUserApi {
 
 		App app = findAppByName(appname);
 
-		ApplicationWithoutJwtModel response = new ApplicationWithoutJwtModel();
+		ApplicationModel response = new ApplicationModel();
 
 		if (app == null) {
 			logger.debug("App " + appname + " was not found");
@@ -312,14 +310,14 @@ public class AppController implements AppApi, AppOfUserApi {
 
 	@Override
 	@Operation(description = "Get All Applications for User")
-	public ResponseEntity<List<ApplicationWithoutJwtModel>> getAppOfUser(String JWT, String xRequestID, String SOURCE_IP,
+	public ResponseEntity<List<ApplicationModel>> getAppOfUser(String JWT, String xRequestID, String SOURCE_IP,
 			String username) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
 		logger.info("Got Request (Get Apps for User)");
 
 		List<App> apps = appRepository.findAll();
-		List<ApplicationWithoutJwtModel> response = new ArrayList<>();
+		List<ApplicationModel> response = new ArrayList<>();
 
 		if (apps == null) {
 			logger.debug("There are no apps");
@@ -331,7 +329,7 @@ public class AppController implements AppApi, AppOfUserApi {
 				for (Iterator<User2App> it = user2Apps.iterator(); it.hasNext();) {
 					User2App user2App = it.next();
 					if (user2App.getUser().getUsername().equals(username)) {
-						ApplicationWithoutJwtModel application = new ApplicationWithoutJwtModel();
+						ApplicationModel application = new ApplicationModel();
 						application.setAppname(a.getAppname());
 						application.setUrl(a.getUrl());
 						if (a.getCssClasses() == null) {

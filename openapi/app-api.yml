@@ -112,7 +112,7 @@ paths:
           content:
             application/json:
                 schema:
-                  $ref: '#/components/schemas/ApplicationListWithoutJwt'
+                  $ref: '#/components/schemas/ApplicationList'
   /app/{appname}:
     parameters:
       - $ref: '#/components/parameters/appname'
@@ -143,7 +143,7 @@ paths:
           content:
             application/json:
                 schema:
-                  $ref: '#/components/schemas/ApplicationWithoutJwt'
+                  $ref: '#/components/schemas/Application'
   /app/{appname}/{username}:
     parameters:
       - $ref: '#/components/parameters/appname'
@@ -211,32 +211,14 @@ components:
       properties:
         verificationMessage:
           type: string
-    ApplicationListWithoutJwt:
+    ApplicationList:
        type: array
        items:
-        $ref: '#/components/schemas/ApplicationWithoutJwt'
-    ApplicationWithoutJwt:
-      required:
-        - appname
-        - url
-      properties:
-        appname:
-          type: string
-        url:
-          type: string
-        cssClasses:
-          type: string
-        allowedUsers:
-          type: array
-          items:
-            type: string  
+        $ref: '#/components/schemas/Application'
     UpdateApplication:
       required:
         - appname
-        - jwt
       properties:
-        jwt:
-          type: string
         appname:
           type: string
         cssClasses:
@@ -267,10 +249,7 @@ components:
       required:
         - appname
         - url
-        - jwt
       properties:
-        jwt:
-          type: string
         appname:
           type: string
         url:

@@ -20,6 +20,7 @@ import com.kienast.authservice.rest.api.AuthApi;
 import com.kienast.authservice.rest.api.model.AllowedApplicationModel;
 import com.kienast.authservice.rest.api.model.AuthenticationModel;
 import com.kienast.authservice.rest.api.model.ChangedModel;
+import com.kienast.authservice.rest.api.model.JWTTokenModel;
 import com.kienast.authservice.rest.api.model.LoginModel;
 import com.kienast.authservice.rest.api.model.PasswordModel;
 import com.kienast.authservice.rest.api.model.ResettedModel;
@@ -102,16 +103,16 @@ public class AuthController implements AuthApi {
 			throw (new NotAuthorizedException(user.getUsername()));
 		}
 
-		TokenModel tokenModel = new TokenAdapter(userCred, user.getUsername()).createJson();
+		JWTTokenModel tokenModel = new TokenAdapter(userCred, user.getUsername()).createJson();
 
-		response.setToken(tokenModel.getToken());
+		response.setToken(tokenModel.getJwt());
 
 		return ResponseEntity.ok(response);
 	}
 
 	@Override
 	@Operation(description = "Register a customer")
-	public ResponseEntity<TokenModel> register(String JWT, String xRequestID, String SOURCE_IP,
+	public ResponseEntity<JWTTokenModel> register(String JWT, String xRequestID, String SOURCE_IP,
 			@Valid LoginModel loginModel) throws NotAuthorizedException {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
@@ -155,21 +156,21 @@ public class AuthController implements AuthApi {
 			throw (new NotAuthorizedException(entity.getUsername()));
 		}
 
-		TokenModel response = new TokenAdapter(userCred, entity.getUsername()).createJson();
+		JWTTokenModel response = new TokenAdapter(userCred, entity.getUsername()).createJson();
 		return ResponseEntity.ok(response);
 	}
 
 	@Override
 	@Operation(description = "Verify JWT")
 	public ResponseEntity<TokenVerifiyResponseModel> verifyToken(String JWT, String xRequestID, String SOURCE_IP,
-			@Valid TokenModel tokenModel) {
+			@Valid JWTTokenModel tokenModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
 
 		TokenVerifiyResponseModel response = new TokenVerifiyResponseModel();
 
-		if (!tokenService.validateToken(tokenModel.getToken())) {
-			throw (new NotAuthorizedException(tokenModel.getToken()));
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
 		}
 
 		User user = findByUsername(tokenModel.getUsername());
@@ -201,15 +202,15 @@ public class AuthController implements AuthApi {
 	@Override
 	@Operation(description = "Reset Mfa")
 	public ResponseEntity<ResettedModel> resetMfa(String JWT, String xRequestID, String SOURCE_IP, String username,
-			@Valid TokenModel tokenModel) {
+			@Valid JWTTokenModel tokenModel) {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
 
 		ResettedModel response = new ResettedModel();
 		User user = null;
 
-		if (!tokenService.validateToken(tokenModel.getToken())) {
-			throw (new NotAuthorizedException(tokenModel.getToken()));
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
 		}
 
 		try {
@@ -247,8 +248,8 @@ public class AuthController implements AuthApi {
 
 		initializeLogInfo(xRequestID, SOURCE_IP, "1");
 
-		if (!tokenService.validateToken(passwordModel.getJwt())) {
-			throw (new NotAuthorizedException(passwordModel.getJwt()));
+		if (!tokenService.validateToken(JWT)) {
+			throw (new NotAuthorizedException(JWT));
 		}
 
 		ChangedModel response = new ChangedModel();
