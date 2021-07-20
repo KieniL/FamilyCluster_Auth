@@ -6,6 +6,23 @@ servers:
 - url: /api
 paths:
   /app:
+    parameters:
+    - in: header
+      name: JWT
+      schema:
+        type: string
+      required: true
+    - in: header
+      name: X-Request-ID
+      schema:
+        type: string
+      required: true
+    - in: header
+      name: SOURCE_IP
+      schema:
+        type: string
+        format: ip
+      required: true
     post:
       tags:
       - "app"
@@ -68,6 +85,22 @@ paths:
   /appOfUser/{username}:
     parameters:
       - $ref: '#/components/parameters/username'
+      - in: header
+        name: JWT
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Request-ID
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: SOURCE_IP
+        schema:
+          type: string
+          format: ip
+        required: true
     get:
       summary: Get Apps of User
       operationId: getAppOfUser
@@ -83,6 +116,22 @@ paths:
   /app/{appname}:
     parameters:
       - $ref: '#/components/parameters/appname'
+      - in: header
+        name: JWT
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Request-ID
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: SOURCE_IP
+        schema:
+          type: string
+          format: ip
+        required: true
     get:
       summary: Get an App
       operationId: getApp
@@ -99,6 +148,22 @@ paths:
     parameters:
       - $ref: '#/components/parameters/appname'
       - $ref: '#/components/parameters/username'
+      - in: header
+        name: JWT
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Request-ID
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: SOURCE_IP
+        schema:
+          type: string
+          format: ip
+        required: true
     get:
       summary: Verify if user is allowed for app
       operationId: verifyUserForApp

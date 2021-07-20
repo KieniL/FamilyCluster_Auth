@@ -8,6 +8,10 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.stream.Collectors;
 
+import com.kienast.authservice.controller.AppController;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -16,6 +20,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -26,6 +31,7 @@ public class TokenServiceImpl implements TokenService {
 
 	private static final String SECRET = "mySecretKey";
 	private static final String AUTHORITIES_KEY = "auth";
+	private static Logger logger = LogManager.getLogger(AppController.class.getName());
 
 	@Override
 	public String generateToken(String userId) {
@@ -45,11 +51,16 @@ public class TokenServiceImpl implements TokenService {
 	@Override
 	public boolean validateToken(String jwtToken) {
 		try {
-			Jwts.parser().setSigningKey(SECRET).parseClaimsJws(jwtToken);
+			System.out.println(jwtToken);
+			Jws<Claims> jws = Jwts.parser().setSigningKey(SECRET).parseClaimsJws(jwtToken);
+			System.out.println(jws.getBody().get("sub"));
+
 			return true;
 		} catch (SignatureException e) {
+			logger.error("Signatureexception " + e.getMessage());
 			return false;
 		} catch (MalformedJwtException e) {
+			logger.error("JWT was malformed " + e.getMessage());
 			return false;
 		}
 	}

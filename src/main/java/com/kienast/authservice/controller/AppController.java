@@ -29,7 +29,11 @@ import com.kienast.authservice.rest.api.model.UpdatedModel;
 import com.kienast.authservice.rest.api.model.VerifiedModel;
 import com.kienast.authservice.service.TokenService;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -50,72 +54,91 @@ public class AppController implements AppApi, AppOfUserApi {
 	@Autowired
 	private UserRepository userRepository;
 
+	private static Logger logger = LogManager.getLogger(AppController.class.getName());
+
+	@Value("${logging.level.com.kienast.authservice}")
+	private String loglevel;
+
 	@Override
 	@Operation(description = "Add an application")
-	public ResponseEntity<ApplicationModel> addApplication(@Valid ApplicationModel applicationModel) {
-		
+	public ResponseEntity<ApplicationModel> addApplication(String JWT, String xRequestID, String SOURCE_IP,
+			@Valid ApplicationModel applicationModel) {
+
+		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+
+		logger.info("Got Request (Add Application) for " + applicationModel.getAppname());
+
 		ApplicationModel response = new ApplicationModel();
-		
+
+		logger.info("Try to validate Token for Request (Add Application) on " + applicationModel.getAppname());
 		if (!tokenService.validateToken(applicationModel.getJwt())) {
-			throw(new NotAuthorizedException(applicationModel.getJwt()));
-		}
-		
-		try {
-			if(findAppByName(applicationModel.getAppname()) != null) {
-				throw new BadRequestException(applicationModel.getAppname());
-			}
-		}catch(NoSuchElementException e) {
-			e.printStackTrace();
+			throw (new NotAuthorizedException(applicationModel.getJwt()));
 		}
 
-		if(applicationModel.getAppname() == null ||
-			applicationModel.getUrl() == null ||
-			applicationModel.getCssClasses() == null ||
-			applicationModel.getAllowedUsers() == null){
+		logger.info("Try to check if App " + applicationModel.getAppname() + " not already exists");
+		try {
+			if (findAppByName(applicationModel.getAppname()) != null) {
+				throw new BadRequestException(applicationModel.getAppname());
+			}
+		} catch (NoSuchElementException e) {
+			logger.debug("No Such Element: " + e.getMessage());
+		}
+
+		if (applicationModel.getAppname() == null || applicationModel.getUrl() == null
+				|| applicationModel.getCssClasses() == null || applicationModel.getAllowedUsers() == null) {
+
+			logger.error("At least one of the provided values was null. Appname: " + applicationModel.getAppname() + " URl: "
+					+ applicationModel.getUrl() + " CSS-Classes: " + applicationModel.getCssClasses() + " AllowedUsers: "
+					+ applicationModel.getAllowedUsers());
+
 			throw new BadRequestException(applicationModel.getAppname());
 		}
-		
-		
+
+		logger.info("Register new Application " + applicationModel.getAppname());
 		App app = new App(applicationModel.getAppname(), applicationModel.getUrl(), applicationModel.getCssClasses());
 		appRepository.save(app);
-		
-		
-		for (String s: applicationModel.getAllowedUsers()) {
+
+		logger.info("Try to add allowedUsers to new Application if there are any");
+		for (String s : applicationModel.getAllowedUsers()) {
 			User user = findByUsername(s);
-			
+
 			user2AppRepository.save(new User2App(new User2AppKey(user.getId(), app.getId()), user, app));
 		}
-		
-		
+
 		List<User2App> user2Apps = findUserApps(app);
 		List<String> allowedUsers = new ArrayList<>();
-		
+
 		for (User2App user2App : user2Apps) {
 			allowedUsers.add(user2App.getUser().getUsername());
 		}
-		
-		
 
-		
-		
 		response.setAppname(app.getAppname());
 		response.setUrl(app.getUrl());
 		response.setJwt(applicationModel.getJwt());
 		response.setAllowedUsers(allowedUsers);
-		
-		
+
+
+		logger.info("Creation was successfull");
+
 		return ResponseEntity.ok(response);
 	}
 
 	@Override
 	@Operation(description = "update an application")
-	public ResponseEntity<ApplicationModel> updateApplication(@Valid UpdateApplicationModel updateApplicationModel) {
+	public ResponseEntity<ApplicationModel> updateApplication(String JWT, String xRequestID, String SOURCE_IP,
+			@Valid UpdateApplicationModel updateApplicationModel) {
+
+		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Update Application) for " + updateApplicationModel.getAppname());
+
 		ApplicationModel response = new ApplicationModel();
 
+		logger.info("Try to validate Token for Request (Update Application) on " + updateApplicationModel.getAppname());
 		if (!tokenService.validateToken(updateApplicationModel.getJwt())) {
 			throw (new NotAuthorizedException(updateApplicationModel.getJwt()));
 		}
 
+		logger.info("Try to check if App " + updateApplicationModel.getAppname() + " already exists");
 		if (findAppByName(updateApplicationModel.getAppname()) == null) {
 			throw new BadRequestException(updateApplicationModel.getAppname());
 		}
@@ -159,30 +182,40 @@ public class AppController implements AppApi, AppOfUserApi {
 		response.setCssClasses(app.getCssClasses());
 		response.setJwt(updateApplicationModel.getJwt());
 
+		logger.info("Update was successfull");
+
 		return ResponseEntity.ok(response);
 	}
 
 	@Override
 	@Operation(description = "get an application")
-	public ResponseEntity<ApplicationWithoutJwtModel> getApp(String appname) {
+	public ResponseEntity<ApplicationWithoutJwtModel> getApp(String JWT, String xRequestID, String SOURCE_IP,
+			String appname) {
+
+		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Get Application) for " + appname);
 
 		App app = findAppByName(appname);
+
 		ApplicationWithoutJwtModel response = new ApplicationWithoutJwtModel();
 
 		if (app == null) {
+			logger.debug("App " + appname + " was not found");
 			return ResponseEntity.ok(null);
 		} else {
 			List<String> allowedUsers = findAllowedUsersForApp(app);
 
 			response.setAppname(app.getAppname());
 			response.setUrl(app.getUrl());
-			if(app.getCssClasses() == null) {
+			if (app.getCssClasses() == null) {
 				response.setCssClasses("");
-			}else {
+			} else {
 				response.setCssClasses(app.getCssClasses());
 			}
 			response.setAllowedUsers(allowedUsers);
 		}
+
+		logger.info("Retrieval was successfull");
 
 		return ResponseEntity.ok(response);
 
@@ -190,16 +223,24 @@ public class AppController implements AppApi, AppOfUserApi {
 
 	@Override
 	@Operation(description = "verify user for application")
-	public ResponseEntity<VerifiedModel> verifyUserForApp(String appname, String username) {
+	public ResponseEntity<VerifiedModel> verifyUserForApp(String JWT, String xRequestID, String SOURCE_IP, String appname,
+			String username) {
+
+		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Verify User for Application) for " + appname);
+
 		App app = findAppByName(appname);
 		VerifiedModel response = new VerifiedModel();
 
 		if (app == null) {
+			logger.info("App " + appname + " does not exist");
 			response.setVerificationMessage("not_allowed");
 		} else {
 			if (checkIfUserInList(app, username)) {
+				logger.info("User is allowed to use " + appname);
 				response.setVerificationMessage("allowed");
 			} else {
+				logger.info("User is not allowed to use " + appname);
 				response.setVerificationMessage("not_allowed");
 			}
 		}
@@ -207,86 +248,105 @@ public class AppController implements AppApi, AppOfUserApi {
 		return ResponseEntity.ok(response);
 
 	}
-	
+
 	@Override
 	@Operation(description = "Add User to App")
-	public ResponseEntity<UpdatedModel> addUser2App(String appname, String username) {
+	public ResponseEntity<UpdatedModel> addUser2App(String JWT, String xRequestID, String SOURCE_IP, String appname,
+			String username) {
+
+		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Add User to Application) for " + appname);
+
 		App app = findAppByName(appname);
 		User user = findByUsername(username);
 		UpdatedModel response = new UpdatedModel();
-		
+
 		if (app == null || user == null) {
+			logger.info("User or app does not exist");
 			response.setUpdated(false);
-		}else {
+		} else {
 			try {
-				
-				
+
 				user2AppRepository.save(new User2App(new User2AppKey(user.getId(), app.getId()), user, app));
 				appRepository.save(app);
-				
+
+				logger.info("Adding was successfull");
 				response.setUpdated(true);
-			}catch(Exception e) {
-				System.out.println(e.getMessage());
-				e.printStackTrace();
+			} catch (Exception e) {
+				logger.info("Error occurred: " + e.getMessage());
 				response.setUpdated(false);
 			}
 		}
-		
+
 		return ResponseEntity.ok(response);
 	}
 
 	@Override
 	@Operation(description = "Get All Applications")
-	public ResponseEntity<List<ApplicationResponseModel>> getApplications() {
+	public ResponseEntity<List<ApplicationResponseModel>> getApplications(String JWT, String xRequestID,
+			String SOURCE_IP) {
+
+		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Get all Applications)");
+
+
+		logger.info("Try to search for applications");
 		List<App> apps = appRepository.findAll();
 		List<ApplicationResponseModel> response = new ArrayList<>();
-		
-		for(App a : apps) {
+
+		for (App a : apps) {
 			ApplicationResponseModel model = new ApplicationResponseModel();
 			model.setAppname(a.getAppname());
 			model.setId(a.getId().toString());
-			if(a.getCssClasses() == null) {
+			if (a.getCssClasses() == null) {
 				model.setCssClasses("");
-			}else {
+			} else {
 				model.setCssClasses(a.getCssClasses());
 			}
 			response.add(model);
 		}
-		
+
+		logger.info("Retrieval was succesfull");
 		return ResponseEntity.ok(response);
 	}
-	
+
 	@Override
 	@Operation(description = "Get All Applications for User")
-	public ResponseEntity<List<ApplicationWithoutJwtModel>> getAppOfUser(String username) {
+	public ResponseEntity<List<ApplicationWithoutJwtModel>> getAppOfUser(String JWT, String xRequestID, String SOURCE_IP,
+			String username) {
+
+		initializeLogInfo(xRequestID, SOURCE_IP, "1");
+		logger.info("Got Request (Get Apps for User)");
+
 		List<App> apps = appRepository.findAll();
 		List<ApplicationWithoutJwtModel> response = new ArrayList<>();
 
 		if (apps == null) {
+			logger.debug("There are no apps");
 			return ResponseEntity.ok(null);
 		} else {
-			
-			for(App a: apps) {
+
+			for (App a : apps) {
 				Set<User2App> user2Apps = a.getUserApp();
-				for (Iterator<User2App> it = user2Apps.iterator(); it.hasNext(); ) {
+				for (Iterator<User2App> it = user2Apps.iterator(); it.hasNext();) {
 					User2App user2App = it.next();
-					if(user2App.getUser().getUsername().equals(username)) {
+					if (user2App.getUser().getUsername().equals(username)) {
 						ApplicationWithoutJwtModel application = new ApplicationWithoutJwtModel();
 						application.setAppname(a.getAppname());
 						application.setUrl(a.getUrl());
-						if(a.getCssClasses() == null) {
+						if (a.getCssClasses() == null) {
 							application.setCssClasses("");
-						}else {
+						} else {
 							application.setCssClasses(a.getCssClasses());
 						}
 						response.add(application);
 						break;
 					}
-			    }
+				}
 			}
 		}
-		
 
+		logger.info("Retrieval was successfull");
 		return ResponseEntity.ok(response);
 	}
 
@@ -300,11 +360,10 @@ public class AppController implements AppApi, AppOfUserApi {
 
 		return allowedUsers;
 	}
-	
+
 	private User findByUsername(String username) {
 		return userRepository.findAll().stream().filter(item -> item.getUsername().equals(username)).findFirst().get();
 	}
-
 
 	private App findAppByName(String appName) {
 		try {
@@ -312,7 +371,7 @@ public class AppController implements AppApi, AppOfUserApi {
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
-		}	
+		}
 	}
 
 	private List<User> findUsersByUsernameList(List<String> usernames) {
@@ -340,8 +399,11 @@ public class AppController implements AppApi, AppOfUserApi {
 		return users.contains(username);
 	}
 
-
-
-
+	private void initializeLogInfo(String requestId, String sourceIP, String userId) {
+		MDC.put("SYSTEM_LOG_LEVEL", loglevel);
+		MDC.put("REQUEST_ID", requestId);
+		MDC.put("SOURCE_IP", sourceIP);
+		MDC.put("USER_ID", userId);
+	}
 
 }

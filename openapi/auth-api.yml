@@ -10,6 +10,23 @@ paths:
       tags:
       - "auth"
       summary: "Register a customer"
+      parameters:
+      - in: header
+        name: JWT
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Request-ID
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: SOURCE_IP
+        schema:
+          type: string
+          format: ip
+        required: true
       description: ""
       operationId: "register"
       requestBody:
@@ -31,6 +48,18 @@ paths:
       tags:
       - "auth"
       summary: "Authenticate a customer"
+      parameters:
+      - in: header
+        name: X-Request-ID
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: SOURCE_IP
+        schema:
+          type: string
+          format: ip
+        required: true
       description: ""
       operationId: "authenticate"
       requestBody:
@@ -52,6 +81,23 @@ paths:
       tags:
       - "auth"
       summary: "Verifiy the jwt"
+      parameters:
+      - in: header
+        name: JWT
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Request-ID
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: SOURCE_IP
+        schema:
+          type: string
+          format: ip
+        required: true
       description: ""
       operationId: "verifyToken"
       requestBody:
@@ -73,6 +119,23 @@ paths:
       tags:
       - "auth"
       summary: "Get all users"
+      parameters:
+      - in: header
+        name: JWT
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Request-ID
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: SOURCE_IP
+        schema:
+          type: string
+          format: ip
+        required: true
       description: ""
       operationId: "getUsers"
       responses:
@@ -87,6 +150,22 @@ paths:
   /auth/{username}:
     parameters:
       - $ref: '#/components/parameters/username'
+      - in: header
+        name: JWT
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: X-Request-ID
+        schema:
+          type: string
+        required: true
+      - in: header
+        name: SOURCE_IP
+        schema:
+          type: string
+          format: ip
+        required: true
     post:
       tags:
       - "auth"
@@ -130,6 +209,23 @@ paths:
         403:
           description: Forbidden
   /mfa/setup:
+    parameters:
+    - in: header
+      name: JWT
+      schema:
+        type: string
+      required: true
+    - in: header
+      name: X-Request-ID
+      schema:
+        type: string
+      required: true
+    - in: header
+      name: SOURCE_IP
+      schema:
+        type: string
+        format: ip
+      required: true
     post:
       tags:
       - "mfa"
@@ -152,6 +248,23 @@ paths:
         403:
           description: Forbidden
   /mfa/verify:
+    parameters:
+    - in: header
+      name: JWT
+      schema:
+        type: string
+      required: true
+    - in: header
+      name: X-Request-ID
+      schema:
+        type: string
+      required: true
+    - in: header
+      name: SOURCE_IP
+      schema:
+        type: string
+        format: ip
+      required: true
     post:
       tags:
       - "mfa"

@@ -33,6 +33,6 @@ public interface AppOfUserApi {
     @RequestMapping(value = "/appOfUser/{username}",
         produces = { "application/json" }, 
         method = RequestMethod.GET)
-    ResponseEntity<List<ApplicationWithoutJwtModel>> getAppOfUser(@ApiParam(value = "the name of the user",required=true) @PathVariable("username") String username);
+    ResponseEntity<List<ApplicationWithoutJwtModel>> getAppOfUser(@ApiParam(value = "the name of the user",required=true) @PathVariable("username") String username,@ApiParam(value = "" ,required=true) @RequestHeader(value="JWT", required=true) String JWT,@ApiParam(value = "" ,required=true) @RequestHeader(value="X-Request-ID", required=true) String xRequestID,@ApiParam(value = "" ,required=true) @RequestHeader(value="SOURCE_IP", required=true) String SOURCE_IP);
 
 }
