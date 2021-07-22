@@ -1,0 +1,50 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Auth Service
+servers:
+- url: /api
+paths:
+  /jwt:
+    parameters:
+    - in: header
+      name: JWT
+      schema:
+        type: string
+      required: true
+    - in: header
+      name: X-Request-ID
+      schema:
+        type: string
+      required: true
+    - in: header
+      name: SOURCE_IP
+      schema:
+        type: string
+        format: ip
+      required: true
+    post:
+      tags:
+      - "jwt"
+      summary: "verify an jwt"
+      description: ""
+      operationId: "verify jwt"
+      responses:
+        200:
+          description: Schemas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenVerificationResponse'
+        403:
+          description: Forbidden
+        400:
+          description: Bad Request
+components:
+  schemas:
+    TokenVerificationResponse:
+      required:
+        - userId
+      properties:
+        userId:
+          type: string

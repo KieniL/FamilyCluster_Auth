@@ -71,6 +71,9 @@ public class AuthController implements AuthApi {
 		try {
 			logger.info("Check if User and pw exists");
 			user = findByUsernameAndPassword(loginModel.getUsername(), loginModel.getPassword());
+			initializeLogInfo(xRequestID, SOURCE_IP, String.valueOf(user.getId()));
+			logger.info("Added UserId to log");
+			
 			List<User2App> userApps = findUserApps(user);
 
 			List<AllowedApplicationModel> allowedApplicatiions = new ArrayList<>();
