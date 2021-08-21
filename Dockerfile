@@ -1,4 +1,11 @@
-FROM luke19/spring-base-image:1628781512
+FROM luke19/spring-base-image:1629374721
+
+LABEL maintainer="KieniL"
+LABEL name="auth"
+LABEL version="1.0.0"
+LABEL author="KieniL"
+LABEL contact="https://github.com/KieniL/FamilyCluster_Auth/issues"
+LABEL documentation="https://github.com/KieniL/FamilyCluster_Auth"
 
 ENV DB_AUTH_HOST=tmp
 ENV DB_AUTH_DB=tmp
