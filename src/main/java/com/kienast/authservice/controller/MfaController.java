@@ -79,7 +79,7 @@ public class MfaController implements MfaApi {
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
-		String userId = tokenService.getUserIdFromToken(JWT);
+		String userId = tokenService.getUUIDFromToken(JWT);
 		if (StringUtils.isNotBlank(userId)) {
 			initializeLogInfo(xRequestID, SOURCE_IP, userId);
 			logger.info("Added userId to log");
@@ -136,7 +136,7 @@ public class MfaController implements MfaApi {
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
-		String userId = tokenService.getUserIdFromToken(JWT);
+		String userId = tokenService.getUUIDFromToken(JWT);
 		if (StringUtils.isNotBlank(userId)) {
 			initializeLogInfo(xRequestID, SOURCE_IP, userId);
 			logger.info("Added userId to log");

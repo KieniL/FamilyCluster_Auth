@@ -22,6 +22,10 @@ public class User extends AuditModel{
 	@Column(name = "id")
     private Long id;
 
+	@NotBlank
+	@Size(min = 1, max = 40)
+	@Column(name = "uuid", columnDefinition = "text")
+	private String uuid;
 
 	@NotBlank
     @Size(min = 1, max = 40)
@@ -51,7 +55,6 @@ public class User extends AuditModel{
 	@Column(name = "logged_in", columnDefinition = "boolean default false")
 	private boolean isLoggedIn = true;
 	
-	
 
 
 	@OneToMany(mappedBy = "user")
@@ -63,11 +66,12 @@ public class User extends AuditModel{
 
 
     public User(String username, String password,
-    		Timestamp nextVerification, boolean alreadyLoggedIn) {
+    		Timestamp nextVerification, boolean alreadyLoggedIn, String uuid) {
 		this.password = password;
 		this.username = username;
 		this.nextVerification = nextVerification;
 		this.alreadyLoggedIn = alreadyLoggedIn;
+		this.uuid = uuid;
 	}
 
 	public Long getId() {
@@ -76,6 +80,13 @@ public class User extends AuditModel{
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+	public String getUUID() {
+		return uuid;
+	}
+
+	public void setUUID(String uuid) {
+		this.uuid = uuid;
 	}
 
 	public String getPassword() {

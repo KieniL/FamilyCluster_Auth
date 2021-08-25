@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.validation.Valid;
@@ -71,6 +72,11 @@ public class AuthController implements AuthApi {
 		try {
 			logger.info("Check if User and pw exists");
 			user = findByUsernameAndPassword(loginModel.getUsername(), loginModel.getPassword());
+			if(StringUtils.isEmpty(user.getUUID())){
+				user.setUUID(UUID.randomUUID().toString().replace("-", ""));
+				userRepository.save(user);
+			}
+			
 			initializeLogInfo(xRequestID, SOURCE_IP, String.valueOf(user.getId()));
 			logger.info("Added UserId to log");
 			
@@ -104,7 +110,7 @@ public class AuthController implements AuthApi {
 
 		try {
 			logger.info("Try to generate a Token for the user");
-			userCred = tokenService.generateToken(user.getUsername());
+			userCred = tokenService.generateToken(user.getUUID().toString());
 		} catch (WrongCredentialsException e) {
 			logger.error("Token generation failed" + e.getMessage());
 			throw (new NotAuthorizedException(user.getUsername()));
@@ -130,7 +136,7 @@ public class AuthController implements AuthApi {
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
-		String userId = tokenService.getUserIdFromToken(JWT);
+		String userId = tokenService.getUUIDFromToken(JWT);
 		if (StringUtils.isNotBlank(userId)) {
 			initializeLogInfo(xRequestID, SOURCE_IP, userId);
 			logger.info("Added userId to log");
@@ -155,7 +161,8 @@ public class AuthController implements AuthApi {
 				logger.info("Try to add new user");
 				entity = userRepository
 						.save(new User(loginModel.getUsername(), hashPassword(loginModel.getPassword()), new Timestamp(nextWeek), // nextVerifications
-								false // alreadyLoggedIn
+								false, // alreadyLoggedIn
+								UUID.randomUUID().toString().replace("-", "")
 						));
 			} else {
 				logger.error("Some data was missing");
@@ -171,7 +178,7 @@ public class AuthController implements AuthApi {
 
 		try {
 			logger.info("Try to generate a Token for the user");
-			userCred = tokenService.generateToken(entity.getUsername());
+			userCred = tokenService.generateToken(entity.getUUID().toString());
 		} catch (WrongCredentialsException e) {
 			logger.error("Token generation failed" + e.getMessage());
 			throw (new NotAuthorizedException(entity.getUsername()));
@@ -197,7 +204,7 @@ public class AuthController implements AuthApi {
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
-		String userId = tokenService.getUserIdFromToken(JWT);
+		String userId = tokenService.getUUIDFromToken(JWT);
 		if (StringUtils.isNotBlank(userId)) {
 			initializeLogInfo(xRequestID, SOURCE_IP, userId);
 			logger.info("Added userId to log");
@@ -248,7 +255,7 @@ public class AuthController implements AuthApi {
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
-		String userId = tokenService.getUserIdFromToken(JWT);
+		String userId = tokenService.getUUIDFromToken(JWT);
 		if (StringUtils.isNotBlank(userId)) {
 			initializeLogInfo(xRequestID, SOURCE_IP, userId);
 			logger.info("Added userId to log");
@@ -294,7 +301,7 @@ public class AuthController implements AuthApi {
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
-		String userId = tokenService.getUserIdFromToken(JWT);
+		String userId = tokenService.getUUIDFromToken(JWT);
 		if (StringUtils.isNotBlank(userId)) {
 			initializeLogInfo(xRequestID, SOURCE_IP, userId);
 			logger.info("Added userId to log");
@@ -342,7 +349,7 @@ public class AuthController implements AuthApi {
 		if (!tokenService.validateToken(JWT)) {
 			throw (new NotAuthorizedException(JWT));
 		}
-		String userId = tokenService.getUserIdFromToken(JWT);
+		String userId = tokenService.getUUIDFromToken(JWT);
 		if (StringUtils.isNotBlank(userId)) {
 			initializeLogInfo(xRequestID, SOURCE_IP, userId);
 			logger.info("Added userId to log");

@@ -67,18 +67,18 @@ public class TokenServiceImpl implements TokenService {
 	}
 
 	@Override
-	public String getUserIdFromToken(String jwtToken) {
+	public String getUUIDFromToken(String jwtToken) {
 		try {
 			Jws<Claims> jws = Jwts.parser().setSigningKey(SECRET).parseClaimsJws(jwtToken);
-			String userName = String.valueOf(jws.getBody().get("sub"));
+			String uuid = String.valueOf(jws.getBody().get("sub"));
 
 			com.kienast.authservice.model.User user = null;
-			if (org.apache.commons.lang3.StringUtils.isNotBlank(userName)) {
-				user = findByUsername(userName);
-				logger.info("UserId found");
+			if (org.apache.commons.lang3.StringUtils.isNotBlank(uuid)) {
+				user = findByUUID(uuid);
+				logger.info("User found");
 				return String.valueOf(user.getId());
 			}
-			logger.error("UserId not found");
+			logger.error("User not found");
 			return "";
 		} catch (SignatureException e) {
 			logger.error("Signatureexception " + e.getMessage());
@@ -102,8 +102,8 @@ public class TokenServiceImpl implements TokenService {
 		return new UsernamePasswordAuthenticationToken(principal, "", authorities);
 	}
 
-	private com.kienast.authservice.model.User findByUsername(String username) {
-		return userRepository.findAll().stream().filter(item -> item.getUsername().equals(username)).findFirst().get();
+	private com.kienast.authservice.model.User findByUUID(String uuid) {
+		return userRepository.findAll().stream().filter(item -> item.getUUID().equals(uuid)).findFirst().get();
 	}
 
 }
