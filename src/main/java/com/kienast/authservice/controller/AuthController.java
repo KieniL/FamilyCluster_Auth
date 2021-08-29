@@ -1,5 +1,8 @@
 package com.kienast.authservice.controller;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -10,6 +13,7 @@ import java.util.stream.Collectors;
 import javax.validation.Valid;
 
 import com.kienast.authservice.dto.TokenAdapter;
+import com.kienast.authservice.exception.BusinessValidationException;
 import com.kienast.authservice.exception.NotAuthorizedException;
 import com.kienast.authservice.exception.WrongCredentialsException;
 import com.kienast.authservice.model.App;
@@ -59,6 +63,9 @@ public class AuthController implements AuthApi {
 	@Value("${logging.level.com.kienast.authservice}")
 	private String loglevel;
 
+	@Value("${secListLocation}")
+	private String secListLocation;
+
 	@Override
 	@Operation(description = "Authenticate a customer")
 	public ResponseEntity<AuthenticationModel> authenticate(String xRequestID, String SOURCE_IP,
@@ -72,14 +79,16 @@ public class AuthController implements AuthApi {
 		try {
 			logger.info("Check if User and pw exists");
 			user = findByUsernameAndPassword(loginModel.getUsername(), loginModel.getPassword());
-			if(StringUtils.isEmpty(user.getUUID())){
+			if (StringUtils.isEmpty(user.getUUID())) {
 				user.setUUID(UUID.randomUUID().toString().replace("-", ""));
 				userRepository.save(user);
 			}
-			
+
 			initializeLogInfo(xRequestID, SOURCE_IP, String.valueOf(user.getId()));
 			logger.info("Added UserId to log");
-			
+
+			checkUserPassword(loginModel.getUsername(), loginModel.getPassword());
+
 			List<User2App> userApps = findUserApps(user);
 
 			List<AllowedApplicationModel> allowedApplicatiions = new ArrayList<>();
@@ -102,6 +111,9 @@ public class AuthController implements AuthApi {
 			response.setAllowedApplicationList(allowedApplicatiions);
 
 		} catch (java.util.NoSuchElementException e) {
+			logger.error(e.getMessage());
+			throw (new NotAuthorizedException(loginModel.getUsername()));
+		} catch (IOException e) {
 			logger.error(e.getMessage());
 			throw (new NotAuthorizedException(loginModel.getUsername()));
 		}
@@ -158,12 +170,7 @@ public class AuthController implements AuthApi {
 
 		if (user == null) {
 			if (loginModel.getUsername() != null && loginModel.getPassword() != null) {
-				logger.info("Try to add new user");
-				entity = userRepository
-						.save(new User(loginModel.getUsername(), hashPassword(loginModel.getPassword()), new Timestamp(nextWeek), // nextVerifications
-								false, // alreadyLoggedIn
-								UUID.randomUUID().toString().replace("-", "")
-						));
+				entity = saveNewUser(loginModel, nextWeek);
 			} else {
 				logger.error("Some data was missing");
 				throw (new NotAuthorizedException("Data missing"));
@@ -320,6 +327,14 @@ public class AuthController implements AuthApi {
 		}
 
 		try {
+			checkUserPassword(username, passwordModel.getPassword());
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+			throw (new NotAuthorizedException(username));
+		}
+		
+
+		try {
 			logger.info("Try to set the new password");
 			if (!passwordModel.getPassword().isEmpty()) {
 				user.setPassword(hashPassword(passwordModel.getPassword()));
@@ -400,4 +415,62 @@ public class AuthController implements AuthApi {
 		MDC.put("USER_ID", userId);
 	}
 
+	private User saveNewUser(LoginModel loginModel, long nextWeek) {
+		User entity;
+		try {
+			checkUserPassword(loginModel.getUsername(), loginModel.getPassword());
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+			throw (new NotAuthorizedException(loginModel.getUsername()));
+		}
+		logger.info("Try to add new user");
+		entity = userRepository
+				.save(new User(loginModel.getUsername(), hashPassword(loginModel.getPassword()), new Timestamp(nextWeek), // nextVerifications
+						false, // alreadyLoggedIn
+						UUID.randomUUID().toString().replace("-", "")));
+		return entity;
+	}
+
+	private void checkUserPassword(String username, String password) throws IOException {
+		List<String> validationMessages = new ArrayList<>();
+
+		logger.info("Check that User Password is more than 10 characters");
+		if(password.length() < 9){
+			validationMessages.add("Password is too short");
+			logger.error("Password is too short");
+		}
+
+		logger.info("Check that User Password is not part of the 100K common password list");
+		if(Files.lines(Paths.get(secListLocation+"/Passwords/Common-Credentials/10-million-password-list-top-100000.txt")).anyMatch(l -> l.contains(password))){
+			validationMessages.add("Password is part of the 100K common password list");
+			logger.error("Password is part of the 100K common password list");
+		}
+
+		logger.info("Check that User Password is not part of the leaked Database Credentials list");
+		if(Files.lines(Paths.get(secListLocation+"/Passwords/Leaked-Databases/rockyou-75.txt")).anyMatch(l -> l.contains(password))){
+			validationMessages.add("Password is part of the leaked Database Credentials list");
+			logger.error("Password is part of the leaked Database Credentials list");
+		}
+
+
+		logger.info("Check that Username is not part of the top usernames shortlist");
+		if(Files.lines(Paths.get(secListLocation+"/Usernames/top-usernames-shortlist.txt")).anyMatch(l -> l.contains(username))){
+			validationMessages.add("Username is part of the top usernames shortlist");
+			logger.error("Username is part of the top usernames shortlist");
+		}
+
+
+		logger.info("Check that Username is not part of the leaked usernames list");
+		if(Files.lines(Paths.get(secListLocation+"/Usernames/Names/names.txt")).anyMatch(l -> l.contains(username))){
+			validationMessages.add("Username is part of the leaked usernames list");
+			logger.error("Username is part of the leaked usernames list");
+		}
+
+
+		if (!validationMessages.isEmpty()){
+			throw new BusinessValidationException(String.join(", ", validationMessages));
+		}
+	}
+
 }
+
