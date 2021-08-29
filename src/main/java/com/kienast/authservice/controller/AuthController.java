@@ -87,7 +87,7 @@ public class AuthController implements AuthApi {
 			initializeLogInfo(xRequestID, SOURCE_IP, String.valueOf(user.getId()));
 			logger.info("Added UserId to log");
 
-			checkUserPassword(loginModel.getPassword());
+			checkUserPassword(loginModel.getUsername(), loginModel.getPassword());
 
 			List<User2App> userApps = findUserApps(user);
 
@@ -327,7 +327,7 @@ public class AuthController implements AuthApi {
 		}
 
 		try {
-			checkUserPassword(passwordModel.getPassword());
+			checkUserPassword(username, passwordModel.getPassword());
 		} catch (IOException e) {
 			logger.error(e.getMessage());
 			throw (new NotAuthorizedException(username));
@@ -418,7 +418,7 @@ public class AuthController implements AuthApi {
 	private User saveNewUser(LoginModel loginModel, long nextWeek) {
 		User entity;
 		try {
-			checkUserPassword(loginModel.getPassword());
+			checkUserPassword(loginModel.getUsername(), loginModel.getPassword());
 		} catch (IOException e) {
 			logger.error(e.getMessage());
 			throw (new NotAuthorizedException(loginModel.getUsername()));
@@ -431,27 +431,42 @@ public class AuthController implements AuthApi {
 		return entity;
 	}
 
-	private void checkUserPassword(String password) throws IOException {
+	private void checkUserPassword(String username, String password) throws IOException {
 		List<String> validationMessages = new ArrayList<>();
 
 		logger.info("Check that User Password is more than 10 characters");
 		if(password.length() < 9){
 			validationMessages.add("Password is too short");
-			logger.warn("Password is too short");
+			logger.error("Password is too short");
 		}
 
 		logger.info("Check that User Password is not part of the 100K common password list");
 		if(Files.lines(Paths.get(secListLocation+"/Passwords/Common-Credentials/10-million-password-list-top-100000.txt")).anyMatch(l -> l.contains(password))){
 			validationMessages.add("Password is part of the 100K common password list");
-			logger.warn("Password is part of the 100K common password list");
+			logger.error("Password is part of the 100K common password list");
 		}
 
 		logger.info("Check that User Password is not part of the leaked Database Credentials list");
 		if(Files.lines(Paths.get(secListLocation+"/Passwords/Leaked-Databases/rockyou-75.txt")).anyMatch(l -> l.contains(password))){
 			validationMessages.add("Password is part of the leaked Database Credentials list");
-			logger.warn("Password is part of the leaked Database Credentials list");
+			logger.error("Password is part of the leaked Database Credentials list");
 		}
-		
+
+
+		logger.info("Check that Username is not part of the top usernames shortlist");
+		if(Files.lines(Paths.get(secListLocation+"/Usernames/top-usernames-shortlist.txt")).anyMatch(l -> l.contains(username))){
+			validationMessages.add("Username is part of the top usernames shortlist");
+			logger.error("Username is part of the top usernames shortlist");
+		}
+
+
+		logger.info("Check that Username is not part of the leaked usernames list");
+		if(Files.lines(Paths.get(secListLocation+"/Usernames/Names/names.txt")).anyMatch(l -> l.contains(username))){
+			validationMessages.add("Username is part of the leaked usernames list");
+			logger.error("Username is part of the leaked usernames list");
+		}
+
+
 		if (!validationMessages.isEmpty()){
 			throw new BusinessValidationException(String.join(", ", validationMessages));
 		}
