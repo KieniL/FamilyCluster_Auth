@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import javax.validation.Valid;
 
 import com.kienast.authservice.dto.TokenAdapter;
+import com.kienast.authservice.exception.BusinessValidationException;
 import com.kienast.authservice.exception.NotAuthorizedException;
 import com.kienast.authservice.exception.WrongCredentialsException;
 import com.kienast.authservice.model.App;
@@ -72,14 +73,16 @@ public class AuthController implements AuthApi {
 		try {
 			logger.info("Check if User and pw exists");
 			user = findByUsernameAndPassword(loginModel.getUsername(), loginModel.getPassword());
-			if(StringUtils.isEmpty(user.getUUID())){
+			if (StringUtils.isEmpty(user.getUUID())) {
 				user.setUUID(UUID.randomUUID().toString().replace("-", ""));
 				userRepository.save(user);
 			}
-			
+
 			initializeLogInfo(xRequestID, SOURCE_IP, String.valueOf(user.getId()));
 			logger.info("Added UserId to log");
-			
+
+			checkUserPassword(loginModel.getPassword());
+
 			List<User2App> userApps = findUserApps(user);
 
 			List<AllowedApplicationModel> allowedApplicatiions = new ArrayList<>();
@@ -158,12 +161,7 @@ public class AuthController implements AuthApi {
 
 		if (user == null) {
 			if (loginModel.getUsername() != null && loginModel.getPassword() != null) {
-				logger.info("Try to add new user");
-				entity = userRepository
-						.save(new User(loginModel.getUsername(), hashPassword(loginModel.getPassword()), new Timestamp(nextWeek), // nextVerifications
-								false, // alreadyLoggedIn
-								UUID.randomUUID().toString().replace("-", "")
-						));
+				entity = saveNewUser(loginModel, nextWeek);
 			} else {
 				logger.error("Some data was missing");
 				throw (new NotAuthorizedException("Data missing"));
@@ -319,6 +317,9 @@ public class AuthController implements AuthApi {
 			throw (new NotAuthorizedException(username));
 		}
 
+		checkUserPassword(passwordModel.getPassword());
+		
+
 		try {
 			logger.info("Try to set the new password");
 			if (!passwordModel.getPassword().isEmpty()) {
@@ -400,4 +401,32 @@ public class AuthController implements AuthApi {
 		MDC.put("USER_ID", userId);
 	}
 
+	private User saveNewUser(LoginModel loginModel, long nextWeek) {
+		User entity;
+		checkUserPassword(loginModel.getPassword());
+		logger.info("Try to add new user");
+		entity = userRepository
+				.save(new User(loginModel.getUsername(), hashPassword(loginModel.getPassword()), new Timestamp(nextWeek), // nextVerifications
+						false, // alreadyLoggedIn
+						UUID.randomUUID().toString().replace("-", "")));
+		return entity;
+	}
+
+	private void checkUserPassword(String password) {
+		List<String> validationMessages = new ArrayList<>();
+
+		logger.info("Check that User Password is more than 10 characters");
+
+		if(password.length() < 9){
+			validationMessages.add("Password is too short");
+			logger.warn("Password is too short");
+		}
+
+		if (!validationMessages.isEmpty()){
+
+			throw new BusinessValidationException(String.join(", ", validationMessages));
+		}
+	}
+
 }
+
