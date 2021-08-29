@@ -1,5 +1,8 @@
 package com.kienast.authservice.controller;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -60,6 +63,9 @@ public class AuthController implements AuthApi {
 	@Value("${logging.level.com.kienast.authservice}")
 	private String loglevel;
 
+	@Value("${secListLocation}")
+	private String secListLocation;
+
 	@Override
 	@Operation(description = "Authenticate a customer")
 	public ResponseEntity<AuthenticationModel> authenticate(String xRequestID, String SOURCE_IP,
@@ -105,6 +111,9 @@ public class AuthController implements AuthApi {
 			response.setAllowedApplicationList(allowedApplicatiions);
 
 		} catch (java.util.NoSuchElementException e) {
+			logger.error(e.getMessage());
+			throw (new NotAuthorizedException(loginModel.getUsername()));
+		} catch (IOException e) {
 			logger.error(e.getMessage());
 			throw (new NotAuthorizedException(loginModel.getUsername()));
 		}
@@ -317,7 +326,12 @@ public class AuthController implements AuthApi {
 			throw (new NotAuthorizedException(username));
 		}
 
-		checkUserPassword(passwordModel.getPassword());
+		try {
+			checkUserPassword(passwordModel.getPassword());
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+			throw (new NotAuthorizedException(username));
+		}
 		
 
 		try {
@@ -403,7 +417,12 @@ public class AuthController implements AuthApi {
 
 	private User saveNewUser(LoginModel loginModel, long nextWeek) {
 		User entity;
-		checkUserPassword(loginModel.getPassword());
+		try {
+			checkUserPassword(loginModel.getPassword());
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+			throw (new NotAuthorizedException(loginModel.getUsername()));
+		}
 		logger.info("Try to add new user");
 		entity = userRepository
 				.save(new User(loginModel.getUsername(), hashPassword(loginModel.getPassword()), new Timestamp(nextWeek), // nextVerifications
@@ -412,18 +431,28 @@ public class AuthController implements AuthApi {
 		return entity;
 	}
 
-	private void checkUserPassword(String password) {
+	private void checkUserPassword(String password) throws IOException {
 		List<String> validationMessages = new ArrayList<>();
 
 		logger.info("Check that User Password is more than 10 characters");
-
 		if(password.length() < 9){
 			validationMessages.add("Password is too short");
 			logger.warn("Password is too short");
 		}
 
-		if (!validationMessages.isEmpty()){
+		logger.info("Check that User Password is not part of the 100K common password list");
+		if(Files.lines(Paths.get(secListLocation+"/Passwords/Common-Credentials/10-million-password-list-top-100000.txt")).anyMatch(l -> l.contains(password))){
+			validationMessages.add("Password is part of the 100K common password list");
+			logger.warn("Password is part of the 100K common password list");
+		}
 
+		logger.info("Check that User Password is not part of the leaked Database Credentials list");
+		if(Files.lines(Paths.get(secListLocation+"/Passwords/Leaked-Databases/rockyou-75.txt")).anyMatch(l -> l.contains(password))){
+			validationMessages.add("Password is part of the leaked Database Credentials list");
+			logger.warn("Password is part of the leaked Database Credentials list");
+		}
+		
+		if (!validationMessages.isEmpty()){
 			throw new BusinessValidationException(String.join(", ", validationMessages));
 		}
 	}
