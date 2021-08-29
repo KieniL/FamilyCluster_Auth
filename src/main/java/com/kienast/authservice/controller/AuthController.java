@@ -63,8 +63,17 @@ public class AuthController implements AuthApi {
 	@Value("${logging.level.com.kienast.authservice}")
 	private String loglevel;
 
-	@Value("${secListLocation}")
-	private String secListLocation;
+	@Value("${commonCredentialsLocation}")
+	private String commonCredentialsLocation;
+
+	@Value("${leakedDatabasePasswordsLocation}")
+	private String leakedDatabasePasswordsLocation;
+
+	@Value("${topUsernamesLocation}")
+	private String topUsernamesLocation;
+
+	@Value("${leakedUsernamesLocation}")
+	private String leakedUsernamesLocation;
 
 	@Override
 	@Operation(description = "Authenticate a customer")
@@ -441,27 +450,27 @@ public class AuthController implements AuthApi {
 		}
 
 		logger.info("Check that User Password is not part of the 100K common password list");
-		if(Files.lines(Paths.get(secListLocation+"/Passwords/Common-Credentials/10-million-password-list-top-100000.txt")).anyMatch(l -> l.contains(password))){
+		if(Files.lines(Paths.get(commonCredentialsLocation)).anyMatch(l -> l.contains(password))){
 			validationMessages.add("Password is part of the 100K common password list");
 			logger.error("Password is part of the 100K common password list");
 		}
 
 		logger.info("Check that User Password is not part of the leaked Database Credentials list");
-		if(Files.lines(Paths.get(secListLocation+"/Passwords/Leaked-Databases/rockyou-75.txt")).anyMatch(l -> l.contains(password))){
+		if(Files.lines(Paths.get(leakedDatabasePasswordsLocation)).anyMatch(l -> l.contains(password))){
 			validationMessages.add("Password is part of the leaked Database Credentials list");
 			logger.error("Password is part of the leaked Database Credentials list");
 		}
 
 
 		logger.info("Check that Username is not part of the top usernames shortlist");
-		if(Files.lines(Paths.get(secListLocation+"/Usernames/top-usernames-shortlist.txt")).anyMatch(l -> l.contains(username))){
+		if(Files.lines(Paths.get(topUsernamesLocation)).anyMatch(l -> l.contains(username))){
 			validationMessages.add("Username is part of the top usernames shortlist");
 			logger.error("Username is part of the top usernames shortlist");
 		}
 
 
 		logger.info("Check that Username is not part of the leaked usernames list");
-		if(Files.lines(Paths.get(secListLocation+"/Usernames/Names/names.txt")).anyMatch(l -> l.contains(username))){
+		if(Files.lines(Paths.get(leakedUsernamesLocation)).anyMatch(l -> l.contains(username))){
 			validationMessages.add("Username is part of the leaked usernames list");
 			logger.error("Username is part of the leaked usernames list");
 		}
