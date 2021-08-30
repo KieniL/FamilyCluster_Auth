@@ -103,7 +103,7 @@ public class TokenServiceImpl implements TokenService {
 	}
 
 	private com.kienast.authservice.model.User findByUUID(String uuid) {
-		return userRepository.findAll().stream().filter(item -> item.getUUID().equals(uuid)).findFirst().get();
+		return userRepository.findAll().stream().filter(item -> item.getUuid().equals(uuid)).findFirst().get();
 	}
 
 }

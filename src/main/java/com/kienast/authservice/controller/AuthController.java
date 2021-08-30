@@ -88,13 +88,22 @@ public class AuthController implements AuthApi {
 		try {
 			logger.info("Check if User and pw exists");
 			user = findByUsernameAndPassword(loginModel.getUsername(), loginModel.getPassword());
-			if (StringUtils.isEmpty(user.getUUID())) {
-				user.setUUID(UUID.randomUUID().toString().replace("-", ""));
+			if (StringUtils.isEmpty(user.getUuid())) {
+				user.setUuid(UUID.randomUUID().toString().replace("-", ""));
 				userRepository.save(user);
 			}
 
 			initializeLogInfo(xRequestID, SOURCE_IP, String.valueOf(user.getId()));
 			logger.info("Added UserId to log");
+
+
+			checkBlockingState(user);
+		
+
+			checkLoginAttempts(user);
+			logger.info("Reset loginAttempts for user");
+			user.setLoginAttempts(0);
+			userRepository.save(user);
 
 			checkUserPassword(loginModel.getUsername(), loginModel.getPassword());
 
@@ -121,6 +130,16 @@ public class AuthController implements AuthApi {
 
 		} catch (java.util.NoSuchElementException e) {
 			logger.error(e.getMessage());
+
+			User user1 = findByUsername(loginModel.getUsername());
+
+			checkBlockingState(user1);
+			checkLoginAttempts(user1);
+
+			if(user1 != null){
+			 user1.setLoginAttempts(user1.getLoginAttempts() + 1);
+			 userRepository.save(user1);
+			}
 			throw (new NotAuthorizedException(loginModel.getUsername()));
 		} catch (IOException e) {
 			logger.error(e.getMessage());
@@ -131,7 +150,7 @@ public class AuthController implements AuthApi {
 
 		try {
 			logger.info("Try to generate a Token for the user");
-			userCred = tokenService.generateToken(user.getUUID().toString());
+			userCred = tokenService.generateToken(user.getUuid().toString());
 		} catch (WrongCredentialsException e) {
 			logger.error("Token generation failed" + e.getMessage());
 			throw (new NotAuthorizedException(user.getUsername()));
@@ -144,6 +163,8 @@ public class AuthController implements AuthApi {
 		logger.info("Token was generated. Authentication was successfull.");
 		return ResponseEntity.ok(response);
 	}
+
+	
 
 	@Override
 	@Operation(description = "Register a customer")
@@ -194,7 +215,7 @@ public class AuthController implements AuthApi {
 
 		try {
 			logger.info("Try to generate a Token for the user");
-			userCred = tokenService.generateToken(entity.getUUID().toString());
+			userCred = tokenService.generateToken(entity.getUuid().toString());
 		} catch (WrongCredentialsException e) {
 			logger.error("Token generation failed" + e.getMessage());
 			throw (new NotAuthorizedException(entity.getUsername()));
@@ -436,7 +457,7 @@ public class AuthController implements AuthApi {
 		entity = userRepository
 				.save(new User(loginModel.getUsername(), hashPassword(loginModel.getPassword()), new Timestamp(nextWeek), // nextVerifications
 						false, // alreadyLoggedIn
-						UUID.randomUUID().toString().replace("-", "")));
+						UUID.randomUUID().toString().replace("-", ""), 0, false));
 		return entity;
 	}
 
@@ -478,6 +499,43 @@ public class AuthController implements AuthApi {
 
 		if (!validationMessages.isEmpty()){
 			throw new BusinessValidationException(String.join(", ", validationMessages));
+		}
+	}
+
+
+	private void checkBlockingState(User user) {
+		logger.info("Check that user is not blocked");
+		if (user.isBlocked()) {
+			Calendar calendar = Calendar.getInstance();
+			Timestamp blockedUntil = user.getBlockedUntil();
+			Timestamp currentTime = new Timestamp(calendar.getTime().getTime());
+
+			logger.info("Check that Blockingtime for user passed");
+			if (currentTime.compareTo(blockedUntil) <= 0) {
+				logger.warn("User is still blocked");
+				throw new BusinessValidationException("User is still Blocked");
+			}else{
+				logger.info("Reset blocking of user since blocking time passed");
+				user.setBlocked(false);
+				user.setBlockedUntil(null);
+				user.setLoginAttempts(0);
+				userRepository.save(user);
+			}
+		}
+	}
+
+	private void checkLoginAttempts(User user) {
+		logger.info("Check that user does not have more than five failed attempts");
+		if(user.getLoginAttempts() >= 5){
+			logger.warn("user has " + user.getLoginAttempts() + " loginAttempts. Block the user for 5 minutes.");
+			user.setBlocked(true);
+
+			Calendar calendar = Calendar.getInstance();
+			calendar.add(Calendar.MINUTE, +5);
+			long inFiveMinutes = calendar.getTime().getTime();
+			user.setBlockedUntil(new Timestamp(inFiveMinutes));
+			userRepository.save(user);
+			throw new BusinessValidationException("Too many failed loginAttempts ("+user.getLoginAttempts()+"). User is now Blocked");
 		}
 	}
 
