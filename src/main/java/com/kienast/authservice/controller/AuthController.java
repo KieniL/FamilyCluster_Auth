@@ -500,7 +500,7 @@ public class AuthController implements AuthApi {
 		}
 
 		logger.info("Check that Password is not part of the custom password list");
-		if(Files.lines(Paths.get(customPasswordsLocation)).anyMatch(l -> l.contains(password))){
+		if(Files.lines(Paths.get(customPasswordsLocation)).anyMatch(l -> password.matches(".*"+l+".*"))){
 			validationMessages.add("Password is part of the custom password list");
 			logger.error("Password is part of the custom password list");
 		}
