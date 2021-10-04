@@ -75,6 +75,9 @@ public class AuthController implements AuthApi {
 	@Value("${leakedUsernamesLocation}")
 	private String leakedUsernamesLocation;
 
+	@Value("${customPasswordsLocation}")
+	private String customPasswordsLocation;
+
 	@Override
 	@Operation(description = "Authenticate a customer")
 	public ResponseEntity<AuthenticationModel> authenticate(String xRequestID, String SOURCE_IP,
@@ -494,6 +497,12 @@ public class AuthController implements AuthApi {
 		if(Files.lines(Paths.get(leakedUsernamesLocation)).anyMatch(l -> l.contains(username))){
 			validationMessages.add("Username is part of the leaked usernames list");
 			logger.error("Username is part of the leaked usernames list");
+		}
+
+		logger.info("Check that Password is not part of the custom password list");
+		if(Files.lines(Paths.get(customPasswordsLocation)).anyMatch(l -> l.contains(password))){
+			validationMessages.add("Password is part of the custom password list");
+			logger.error("Password is part of the custom password list");
 		}
 
 
